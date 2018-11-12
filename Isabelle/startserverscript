@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cp -R /var/lib/isabelle-grader/.isabelle .
+
+Isabelle2018/bin/isabelle server -n "max" -p 4711

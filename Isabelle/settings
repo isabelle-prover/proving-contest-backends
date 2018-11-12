@@ -1,0 +1,3 @@
+ML_PLATFORM="x86_64-linux"
+ML_HOME="$ISABELLE_HOME/contrib/polyml-5.7.1-8/$ML_PLATFORM"
+

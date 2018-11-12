@@ -1,0 +1,81 @@
+
+
+==============================================
+ASSUMPTIONS:
+
+0) python:
+-> python2.7 installed (for grader)
+-> python3.7/3.6 installed (for poller)
+
+[ specify the used python version in the file "pythonversion",
+	default is python3.6 ]
+
+1) files in /var/lib/isabelle-grader/
+-> Defs.thy
+-> OK_Test.thy
+
+2) network namespace named is setup
+-> do this with > sudo ./setupnewnamespace.sh
+
+1+2) can be done with
+> ./prepareserver.sh
+
+3) Isabelle2018 being installed in the home folder
+
+4) running Isabelle server (no as root!)
+> ./startserver.sh
+
+
+==============================================
+HOW TO START THE SERVER (Isabelle Server + Poller)
+
+1)
+put the sessions you need into the file "sessions"
+each session in one line.
+
+2) prepare the server 
+
+> ./judge prepare
+
+this will build session images, place
+Defs and OK_Test into /var/lib/isabelle-grader/,
+as well as heaps and settings for Isabelle.
+
+this may take a while if new images need to be build
+
+3) start the server
+
+> ./judge start
+
+this will start Isabelle Server and the poller.
+
+
+4) get status of server
+
+> ./judge status
+
+5) stop the server
+
+> ./judge stop
+
+==============================================
+HOW TO START THE POLLER (manually)
+
+Start the poller with this command,
+add the PWD!
+
+> sudo python3.7 poller.py 
+
+
+==============================================
+HOW TO START THE GRADER (manually)
+
+e.g.:
+sudo ip netns exec isabelle-server python2.7 grader.py "SERVER-PASSWORD" "HOL" "OK_Test" 10.0
+
+
+theory files must be placed in:
+/var/lib/isabelle-grader/
+
+
+
