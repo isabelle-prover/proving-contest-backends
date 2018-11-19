@@ -1,14 +1,25 @@
 #!/bin/bash
 
-cd /var/lib/HOL4-grader
+mkdir /tmp/HOL4-grader
+
+cd /tmp/HOL4-grader
+cp /var/lib/HOL4-grader/checkScript.sml .
+cp /var/lib/HOL4-grader/definitionsScript.sml .
+cp /var/lib/HOL4-grader/templateScript.sml .
 
 res=`~/repos/git/HOL/bin/Holmake`
 
 if grep -qv FAILED <<< $res ; then
  echo "Success"
- exit 4
+ exitcode=4
 else
  echo "Failed to build proof scripts..."
  echo $res
- exit 5
+ exitcode=5
 fi
+
+
+# tidy up
+rm -rf /tmp/HOL4-grader
+
+exit $exitcode
