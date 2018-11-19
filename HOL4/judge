@@ -1,0 +1,39 @@
+#!/bin/bash
+
+checkPID() {
+	PID=`cat $1`
+
+	if [ "$PID" == "-1" ]
+		then
+		running="-1"
+	elif ps -p $PID > /dev/null
+		then
+		running="$PID"
+	else 
+		echo "-1" > $1
+		running="-1"
+	fi
+	echo $running
+}
+
+
+if [ "$1" == "status" ]
+	then	
+	pollerPID=`checkPID pollerPID`
+	if [ $pollerPID == "-1" ]
+	 then
+		echo "Poller: down"
+	else	
+		echo "Poller: up (PID=$pollerPID)"
+	fi 
+
+elif [ "$1" == "stop" ]
+then
+	echo "stop Poller"
+	./stoppoller.sh #TODO: stop gracefully, now the current grading task is just killed (but that's okay)!
+	
+
+elif [ "$1" == "start" ]
+then
+	./startserver.sh
+fi
