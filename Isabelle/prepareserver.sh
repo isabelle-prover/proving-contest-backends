@@ -23,22 +23,21 @@ echo "======================================================"
 echo "build extra session IMP for Semantics"
 
 folder=`pwd`
-echo "entering /tmp"
-cd /tmp
-mkdir buildSemantics
-cd buildSemantics
+echo "entering $graderfolder"
+cd $graderfolder
 echo "cloning repository"
 git clone https://bitbucket.org/plammich/semantics1819_public.git
 cd semantics1819_public
+git pull
 echo "building IMP"
 ~/Isabelle2018/bin/isabelle build -b -d "IMP" "IMP"; 
+ 
+echo "$graderfolder/semantics1819_public/IMP" > $graderfolder/.isabelle/$version/ROOTS
 
-echo "cleaning"
-rm -rf  /tmp/buildSemantics
-
-echo "leavin /tmp"
+echo "leavin $graderfolder"
 echo "entering $folder"
 cd $folder
+
 
 echo "======================================================"
 echo "copy heaps"
