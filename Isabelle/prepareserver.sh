@@ -20,6 +20,27 @@ for sn in `cat $sessions`; do
 done 
 
 echo "======================================================"
+echo "build extra session IMP for Semantics"
+
+folder=`pwd`
+echo "entering /tmp"
+cd /tmp
+mkdir buildSemantics
+cd buildSemantics
+echo "cloning repository"
+git clone https://bitbucket.org/plammich/semantics1819_public.git
+cd semantics1819_public
+echo "building IMP"
+~/Isabelle2018/bin/isabelle build -b -d "IMP" "IMP"; 
+
+echo "cleaning"
+rm -rf  /tmp/buildSemantics
+
+echo "leavin /tmp"
+echo "entering $folder"
+cd $folder
+
+echo "======================================================"
 echo "copy heaps"
 cp -R ~/.isabelle/$version/heaps $isapref
 
