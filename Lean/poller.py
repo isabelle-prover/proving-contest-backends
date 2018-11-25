@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+# Polls the Theorem Prover Competition Webserver for new Lean submissions
+
 import subprocess
 import requests
 import json
@@ -6,79 +10,67 @@ import time
 import re
 import logging
 
-sys.exit(0) ## NOT TESTED YET
+install_path = "/home/hoelzl/Projects/competition/"
 
-# logging
+pollurl = "pollsubmission/?itp=LEA"
+puturl = "putresult/"
+path = install_path
 
-pollurl ="pollsubmission/?itp=LEA"
-puturl ="putresult/"
-path="/var/lib/lean-grader/"
-
-compile_command=["lean", "check.lean", "-E", "check.out", "--only-export=main_theorem"]
-check_command=["leanchecker", "check.out", "main_theorem"]
+lean_bin = install_path + "lean-3.4.1-linux/bin/"
+compile_command = [lean_bin + "lean", "check.lean", "-E", "check.out", "--only-export=main_theorem"]
+check_command = [lean_bin + "leanchecker", "check.out", "main_theorem"]
 
 axiom_re = re.compile("axiom ([^ ]*) .*")
 
-
-## MAIN FUNCTIONALITY
 if __name__ == "__main__":
-	#print(len(sys.argv))
-	#if len(sys.argv) < 1:
-	#	print("Unexpected number of command line arguments. Aborting!")
-	#	sys.exit()
+	loglevel = logging.INFO
 
-	loglevel=logging.INFO
 	if len(sys.argv) > 1:
 		if sys.argv[1] == "DEBUG":
-			loglevel=logging.DEBUG
+			loglevel = logging.DEBUG
 
 	## INITIALIZE LOGGING
-	logging.basicConfig(filename="poller.log",
-		                        filemode='a',
-		                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-		                        datefmt='%m-%d %H:%M:%S',
-		                        level=loglevel)
+	logging.basicConfig(
+#		filename = "poller.log",
+		stream   = sys.stderr,
+		filemode = 'a',
+		format   = '%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+		datefmt  = '%m-%d %H:%M:%S',
+		level    = loglevel)
 
 	logger = logging.getLogger('poller')
 
-	logger.info("#####################")
-	logger.info ("starting up Poller")
-	logger.debug ("in debug mode")
+	logger.info("## Lean Poller")
+	logger.debug("In debug mode")
 
-	## READ CONFIG
-	# config contains: token (to access restapi), pwd (to access Isabelle Server),
-	#					baseurl (to access restapi) )
-	logger.info ("reading config")
-	config= open("config", "r")
-	cnf = json.loads(config.read())
-	config.close()
+	logger.info("Reading config")
+	config_file = open("config", "r")
+	config = json.loads(config_file.read())
+	config_file.close()
 
-	pwd = cnf["pwd"]
-	token = cnf["token"]
-	baseurl = cnf["baseurl"]
-	headers={"Content-Type": "application/json", "Authorization": "Token %s"%token}
+	token = config["token"]
+	baseurl = config["baseurl"]
+	headers = {
+		"Content-Type": "application/json",
+		"Authorization": "Token %s" % token
+	}
 
-	logger.info("pwd %s, token %s"%(pwd,token))
+	logger.info("Token: %s" % token)
 
-
-	logger.info ("entering the polling loop")
-	## STARTING THE MAIN POLLING LOOP
+	logger.info("Starting the polling loop")
 	while True:
-		time.sleep(5)
-
 		## poll from server
-		logger.debug("poll from server")
+		logger.debug("Poll from server")
 
-
-		url=baseurl+pollurl
+		url = baseurl + pollurl
 
 		# send get request
-		myResponse = requests.get(url, verify=True, headers=headers)
-		logger.debug ("sent GET request to " + url)
+		my_response = requests.get(url, verify = True, headers = headers)
+		logger.debug ("Sent GET request to " + url)
 
 		# work with answer
-		if(myResponse.ok):
-			jData = json.loads(myResponse.content)
+		if(my_response.ok):
+			jData = json.loads(my_response.content)
 
 			# NO TASK available
 			if jData["sID"] == -1:
@@ -94,7 +86,6 @@ if __name__ == "__main__":
 				logger.debug("\n")
 				for key in jData:
 					logger.debug( key + " : " + str(jData[key]))
-
 
 				submissionId=jData["sID"]
 				assessmentId=jData["aID"]
@@ -131,9 +122,9 @@ if __name__ == "__main__":
 				except subprocess.TimeoutExpired:
 					timedout = True
 
-				checker_result = subprocess.run(check_command)
+				checker_result = subprocess.run(check_command, stdout=subprocess.PIPE, encoding="utf-8")
 				unknown_axiom = None
-				for line in checker_result.stdout.readlines():
+				for line in checker_result.stdout.splitlines():
 					m = axiom_re.match(line)
 					if m and m[1] not in ["propext", "classical.choice", "quot.sound"]:
 						logger.info("UNKNOWN AXIOM: " + m[1])
@@ -143,7 +134,7 @@ if __name__ == "__main__":
 					logger.info("the checking process was killed !!")
 					returncode = 8
 					grader_msg = "the checking process was killed after %s !!" % timeout_sec
-				else if unknown_axiom:
+				elif unknown_axiom:
 					returncode = 8
 					grader_msg = "unknown axiom %s !!" % unknown_axiom
 				else :
@@ -184,10 +175,8 @@ if __name__ == "__main__":
 				logger.info("==================================================")
 		else:
 			try:
-				myResponse.raise_for_status()
+				my_response.raise_for_status()
 			except requests.HTTPError as e:
 				logger.debug(e)
-		logger.debug("and start all over :)")
 
-
-
+		time.sleep(5)
