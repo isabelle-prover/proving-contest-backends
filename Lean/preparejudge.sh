@@ -6,7 +6,8 @@ graderfolder=/var/lib/lean-grader
 currentfolder=`pwd`
 
 sudo mkdir -p $graderfolder
-sudo chmod 667 $graderfolder
+sudo chown $USER $graderfolder
+sudo chmod 777 $graderfolder
 
 
 echo "======================================================"
