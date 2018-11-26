@@ -9,6 +9,7 @@ import sys
 import time
 import re
 import logging
+import codecs
 
 pollurl = "pollsubmission/?itp=LEA"
 puturl = "putresult/"
@@ -103,7 +104,7 @@ if __name__ == "__main__":
 				for thyfile in jData["files"]:
 					content = jData["files"][thyfile]
 					logger.debug ("writing file '" + path + thyfile.lower() + ".lean" + "'!")
-					text_file = open(path + thyfile.lower() + ".lean", "w")
+					text_file = codecs.open(path + thyfile.lower() + ".lean", "w", "utf-8")
 					text_file.write(content)
 					text_file.close()
 
