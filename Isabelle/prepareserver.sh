@@ -30,9 +30,11 @@ git clone https://bitbucket.org/plammich/semantics1819_public.git
 cd semantics1819_public
 git pull
 echo "building IMP"
-~/Isabelle2018/bin/isabelle build -b -d "IMP" "IMP"; 
+~/Isabelle2018/bin/isabelle build -b -d . "IMP"; 
+echo "building IMP"
+~/Isabelle2018/bin/isabelle build -b -d . "IMP2"; 
  
-echo "$graderfolder/semantics1819_public/IMP" > $graderfolder/.isabelle/$version/ROOTS
+echo "$graderfolder/semantics1819_public" > $graderfolder/.isabelle/$version/ROOTS
 
 echo "leavin $graderfolder"
 echo "entering $folder"
