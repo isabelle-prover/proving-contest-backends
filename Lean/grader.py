@@ -25,7 +25,7 @@ if __name__ == "__main__":
 		format   = '%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
 		datefmt  = '%m-%d %H:%M:%S',
 		level    = loglevel)
-	logger = logging.getLogger('poller')
+	logger = logging.getLogger('grader')
 
 	logger.info("## Lean Grader")
 	logger.debug("In debug mode")
