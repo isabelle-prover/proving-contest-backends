@@ -10,15 +10,10 @@ import time
 import re
 import logging
 
-install_path = "/home/hoelzl/Projects/competition/"
-
 pollurl = "pollsubmission/?itp=LEA"
 puturl = "putresult/"
-path = install_path
+path = "/var/lib/lean-grader/"
 
-lean_bin = install_path + "lean-3.4.1-linux/bin/"
-compile_command = [lean_bin + "lean", "check.lean", "-E", "check.out", "--only-export=main_theorem"]
-check_command = [lean_bin + "leanchecker", "check.out", "main_theorem"]
 
 axiom_re = re.compile("axiom ([^ ]*) .*")
 
@@ -31,8 +26,8 @@ if __name__ == "__main__":
 
 	## INITIALIZE LOGGING
 	logging.basicConfig(
-#		filename = "poller.log",
-		stream   = sys.stderr,
+		filename = "poller.log",
+#		stream   = sys.stderr,
 		filemode = 'a',
 		format   = '%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
 		datefmt  = '%m-%d %H:%M:%S',
@@ -47,6 +42,8 @@ if __name__ == "__main__":
 	config_file = open("config", "r")
 	config = json.loads(config_file.read())
 	config_file.close()
+
+	lean_compile_and_check = ["./grader.sh"]
 
 	token = config["token"]
 	baseurl = config["baseurl"]
@@ -110,11 +107,12 @@ if __name__ == "__main__":
 					text_file.write(content)
 					text_file.close()
 
-				logger.info("Compile Lean proof output")
+				logger.info("Compile & Check Lean proof output in container")
+
+				timeout_sec = jData["timeout_all"] 
+
 				returncode = -1
-				timedout = True
-				timeout_sec = jData["timeout_all"]
-				process = subprocess.Popen(compile_command)
+				process = subprocess.Popen(lean_compile_and_check , stdout=subprocess.PIPE)
 				try:
 					output, error = process.communicate(timeout=timeout_sec)
 					timedout = False
@@ -122,34 +120,27 @@ if __name__ == "__main__":
 				except subprocess.TimeoutExpired:
 					timedout = True
 
-				checker_result = subprocess.run(check_command, stdout=subprocess.PIPE, encoding="utf-8")
-				unknown_axiom = None
-				for line in checker_result.stdout.splitlines():
-					m = axiom_re.match(line)
-					if m and m[1] not in ["propext", "classical.choice", "quot.sound"]:
-						logger.info("UNKNOWN AXIOM: " + m[1])
-						unknown_axiom = m[1]
-
-				if timedout:
-					logger.info("the checking process was killed !!")
-					returncode = 8
-					grader_msg = "the checking process was killed after %s !!" % timeout_sec
-				elif unknown_axiom:
-					returncode = 8
-					grader_msg = "unknown axiom %s !!" % unknown_axiom
-				else :
-					# get the return message
-					grader_msg = "OK"
-
-				logger.info("-> Checking is done")
-
-				logger.info("return code is:" + str(returncode))
 
 				if returncode == 4:
 					# sucessfully checked
+					grader_msg = "OK"
 					result = "1"
 				else:
-					# error occured or wrong
+					# error occured or wrong, compose some grader message
+					if timedout:
+						grader_msg = "Lean Checking timed out (outer)"
+					elif returncode == 5 :
+						if output is None:
+							output_msg = ""
+						else:
+							output_msg = str(output) 
+						grader_msg = "Compiling failed, message =\n" + output_msg
+					else:
+						if output is None:
+							output_msg = ""
+						else:
+							output_msg = str(output) 
+						grader_msg = "something went wrong here is some output\n" + output_msg
 					result = "0"
 
 				#### ONLY UNTIL HERE things are ProofAssistant-specific
