@@ -39,7 +39,7 @@ then
 
 elif [ "$1" == "prepare" ]
 then
-	sudo ./preparejudge.sh
+	./preparejudge.sh
 
 else 
 	echo "Unknown command! usage: status|start|stop|prepare"
