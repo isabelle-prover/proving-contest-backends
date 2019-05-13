@@ -11,6 +11,7 @@ res=`~/repos/git/HOL/bin/Holmake`
 
 if grep -qv FAILED <<< $res ; then
  echo "Success"
+ echo $res
  exitcode=4
 else
  echo "Failed to build proof scripts..."
