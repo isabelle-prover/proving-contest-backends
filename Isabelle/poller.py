@@ -286,19 +286,37 @@ if __name__ == "__main__":
 					# Id of the assessment:						assessmentId
 					# some message (string):					grader_msg
 
-					data=json.dumps({'result': result, 'sID': submissionId, 'aID': assessmentId, 'msg': grader_msg})
+
+					if "Timer already cancelled" in grader_msg:
+						# signal error
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")				
+						logger.info("found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
 				
-					logger.debug("put the result back to the server")
-					response = requests.post(baseurl+puturl,data=data, headers=headers)
-		
-					if(response.ok):
-						jData = json.loads(response.content)
-						logger.debug("The response contains {0} properties".format(len(jData)))
-						logger.debug("\n")
-						for key in jData:
-							logger.debug(key + " : " + jData[key])
+						watch_dog = open("poller.watch", "w")
+						watch_dog.write("error")
+						watch_dog.close()
+						watchdog_error = True
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
+						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 					else:
-						response.raise_for_status()
+						data=json.dumps({'result': result, 'sID': submissionId, 'aID': assessmentId, 'msg': grader_msg})
+				
+						logger.debug("put the result back to the server")
+						response = requests.post(baseurl+puturl,data=data, headers=headers)
+		
+						if(response.ok):
+							jData = json.loads(response.content)
+							logger.debug("The response contains {0} properties".format(len(jData)))
+							logger.debug("\n")
+							for key in jData:
+								logger.debug(key + " : " + jData[key])
+						else:
+							response.raise_for_status()
 					logger.info("==================================================")
 			else:
 				try:
@@ -306,21 +324,7 @@ if __name__ == "__main__":
 				except requests.HTTPError as e:
 					logger.debug(e)
 
-			if "Timer already cancelled" in grader_msg:
-				# signal error
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")				
-				logger.info("found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
-				
-				watch_dog = open("poller.watch", "w")
-				watch_dog.write("error")
-				watch_dog.close()
-				watchdog_error = True
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-				logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
+			
 
 			logger.debug("and start all over :)")
 
