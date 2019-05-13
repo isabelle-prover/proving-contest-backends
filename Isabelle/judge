@@ -1,5 +1,14 @@
 #!/bin/bash
 
+
+if [ -e pythonversion ]
+then
+	pythonversion=`cat pythonversion`
+else
+	pythonversion=python3.6
+fi
+
+
 checkPID() {
 	PID=`cat $1`
 
@@ -46,6 +55,19 @@ then
 elif [ "$1" == "start" ]
 then
 	./startserver.sh
+
+	echo "C) starting poller now"
+
+	echo "ready" > poller.watch
+
+	sudo $pythonversion poller.py &
+	pollerPID=$!
+	echo "started an poller (PID=$pollerPID)"	
+	echo $pollerPID > pollerPID
+
+elif [ "$1" == "initwatchdog" ]
+then
+	echo $PWD > ~/.IsabellePoller
 	
 
 elif [ "$1" == "prepare" ]

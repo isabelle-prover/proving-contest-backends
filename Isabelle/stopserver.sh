@@ -8,6 +8,6 @@ if [ "$PID" == "-1" ]
 		echo "no poller is running"
 	else
 		echo "kill Isabelle server process (PID=$PID) now"
-		sudo kill $PID
+		kill $PID
 		echo "-1" > $PIDfile
 fi

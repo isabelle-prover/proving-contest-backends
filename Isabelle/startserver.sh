@@ -74,12 +74,7 @@ if [ "$running" == "0" ]
 
 
 
-	echo "C) starting poller now"
 
-	sudo $pythonversion poller.py &
-	pollerPID=$!
-	echo "started an poller (PID=$pollerPID)"	
-	echo $pollerPID > pollerPID
 
 
 else
