@@ -17,14 +17,13 @@ ASSUMPTIONS:
 2) network namespace named is setup
 -> do this with > sudo ./setupnewnamespace.sh
 
+3) Isabelle2018 is installed in the home folder
+
+4) Firejail is installed
+
 1+2) can be done with
 > ./prepareserver.sh
-
-3) Isabelle2018 being installed in the home folder
-
-4) running Isabelle server (no as root!)
-> ./startserver.sh
-
+(see below)
 
 ==============================================
 HOW TO START THE SERVER (Isabelle Server + Poller)
@@ -43,18 +42,20 @@ as well as heaps and settings for Isabelle.
 
 this may take a while if new images need to be build
 
-3) start the server
+3) Copy `config.temp` to `config` and fill in the details
+
+4) start the server
 
 > ./judge start
 
 this will start Isabelle Server and the poller.
 
 
-4) get status of server
+5) get status of server
 
 > ./judge status
 
-5) stop the server
+6) stop the server
 
 > ./judge stop
 
