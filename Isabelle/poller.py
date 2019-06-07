@@ -38,18 +38,19 @@ class Poller(ABC):
         config.close()
 
         pwd = cnf["pwd"]  # XXX Should this be here?
+        self.password = pwd
         self.token = cnf["token"]
         self.baseurl = cnf["baseurl"]
 
-        logger.info("pwd %s, token %s" % (pwd, token))
+        logger.info("pwd %s, token %s" % (pwd, self.token))
 
         # Set standard configuration
         self.pollurl_template = "pollsubmission/?itp={}"
-        self.polllurl = "pollsubmission/?itp="
+        self.pollurl = "pollsubmission/?itp="
         self.puturl = "putresult/"
         self.itp = None
         self.headers = {"Content-Type": "application/json",
-                        "Authorization": "Token %s" % token}
+                        "Authorization": "Token %s" % self.token}
 
         # Init
         self.init()
@@ -129,7 +130,7 @@ class Poller(ABC):
                     try:
                         result, error, items = self.grade_submission(submission_id, assessment_id, data["files"]["Defs"], data[
                             "files"]["Submission"], data["files"]["Check"], data["image"], data["version"], data["timeout_socket"],
-                            data["timeout_all"], data["allow_sorry"], data["checkfile"] if checkfile in data else None)
+                            data["timeout_all"], data["allow_sorry"], data["checkfile"] if "checkfile" in data else None)
                     # In case the grader signals that the watchdog should restart the whole thing.
                     except Grader_Panic:
                         self.tidy()

@@ -81,19 +81,19 @@ def check_for_keywords(prepared, allow_sorry):
 
     # add sorry as keyword if it is not allowed:
     if not allow_sorry:
-        logger.info("add sorry as illegal")
         IK.append(ILLEGAL_SORRY)
 
     for keyword_mode in IK:
         if check_for_keyword(prepared, keyword_mode):
             return {"result": False, "message": "Identified illegal keyword: %s" % keyword_mode[0]}
+    return {"result": True, "message": ""}
 
 
 raw_bash_command = 'sudo ip netns exec isabelle-server python2.7 grader.py "{0}" "{1}" "{2}" {3}'
 grader_path = "/var/lib/isabelle-grader/"
 
 
-def Poller_Isa(Poller):
+class Poller_Isa(Poller):
 
     def init(self):
         # XXX Read password?
@@ -111,7 +111,7 @@ def Poller_Isa(Poller):
         else:
             # write files into shared folder with Isabelle server
             logger.debug("write the theory files")
-            for name, content in enumerate(("Defs", defs), ("Submission", submission), ("Check", check)):
+            for name, content in (("Defs", defs), ("Submission", submission), ("Check", check)):
                 if name == "Defs":
                     name = "Defs0"
                     p = content.split("imports", 1)
@@ -174,6 +174,8 @@ def Poller_Isa(Poller):
 
             return result, error, [grader_msg]
 
+    def tidy(self):
+        pass
 
 if __name__ == "__main__":
     loglevel = logging.INFO
