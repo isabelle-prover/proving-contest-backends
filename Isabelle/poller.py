@@ -1,332 +1,161 @@
-import subprocess
 import requests
 import json
 import sys
 import time
-import re 
-import logging 
- 
-# logging
+import logging
+from abc import ABC
+from watchdog import Watchdog_Restart
 
 
+class Grader_Panic(Exception):
+    pass
 
 
-# XXX How about typedef and friends?
-# (keyword, is_surrounded_by_whitespace)
-ILLEGAL_KEYWORDS = [
-	("axiomatization", True),
-	("overloading", True),
-	("code_printing", True),
-	# XXX Can remove after checking in ML
-	("translations", True),
-	("declaration", False),
-	# XXX Allow?
-	("syntax_declaration", False),
-	("oracle", False),
-	("judgement", False),
-	("method_setup", False),
-	("simproc_setup", False),
-	("SML_export", False),
-	("SML_import", False),
-	("SML_file", False),
-	("SML_file", False),
-	("ML_file", False),
-	("SML_file_debug", False),
-	("ML_file_debug", False),
-	("SML_file_no_debug", False),
-	("ML_file_no_debug", False),
-	("ML", False),
-	# XXX Allow the following to commands?
-	("ML_val", False),
-	("ML_command", False),
-	("ML_prf", False),
-	("setup", False),
-	("local_setup", False),
-	("attribute_setup", False),
-	# Do we need these, i.e. can side-effects be bad?
-	("parse_ast_translation", False),
-	("parse_translation", False),
-	("print_translation", False),
-	("typed_print_translation", False),
-	("print_ast_translation", False),
-	("eval", "Tactic"),
-	("tactic", "Tactic"),
-	("raw_tactic", "Tactic")
-]
+class Poller(ABC):
+    def __init__(self, loglevel=logging.INFO):
 
-ILLEGAL_SORRY = ("sorry", True)
+        # Initialize logging
+        logging.basicConfig(filename="poller.log",
+                            filemode='a',
+                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                            datefmt='%m-%d %H:%M:%S',
+                            level=loglevel)
 
+        logger = logging.getLogger('poller')
 
-def check_for_keyword(text, keyword_mode):
-	open = re.escape("\<open>")
-	old_open = re.escape("{*")
-	close = re.escape("\<close>")
-	old_close = re.escape("*}")
-	quotation = re.escape('"')
-	keyword, mode = keyword_mode
-	start_regex = '(%s|\s+|\A)' % '|'.join([re.escape(')'), close, old_close, quotation])
-	regex = '%s%s(\s*(%s|%s|%s))' % (start_regex, '%s', open, old_open, quotation)
-	if mode == "Tactic":
-		# XXX May be incomplete
-		tactic_ops = [re.escape(s) for s in ['(', ',', ';', '|']]
-		regex = '|'.join(tactic_ops)
-		regex = '(%s)\s*%s' % (regex, '%s')
-	elif mode:
-		regex = '%s%s\s+' % (start_regex, '%s')
+        logger.info("#####################")
+        logger.info("starting up poller")
+        logger.debug("in debug mode")
 
-	regex = regex % keyword
-	return re.search(regex, text) is not None
+        self.logger = logger
 
+        # Read configuration
+        # config contains: token (to access restapi), pwd (to access Isabelle Server),
+        #					baseurl (to access restapi) )
+        logger.info("reading config")
+        config = open("config", "r")
+        cnf = json.loads(config.read())
+        config.close()
 
-def check_for_keywords(prepared, allow_sorry):
-	IK = ILLEGAL_KEYWORDS.copy()
+        pwd = cnf["pwd"]  # XXX Should this be here?
+        self.token = cnf["token"]
+        self.baseurl = cnf["baseurl"]
 
-	# add sorry as keyword if it is not allowed:
-	if not allow_sorry:
-		logger.info ("add sorry as illegal")
-		IK.append(ILLEGAL_SORRY)
-      
-	for keyword_mode in  IK:
-		if check_for_keyword(prepared, keyword_mode):
-			return {"result": False, "message": "Identified illegal keyword: %s" % keyword_mode[0]}
-	return {"result": True, "message": ""}
+        logger.info("pwd %s, token %s" % (pwd, token))
 
-  
-pollurl ="pollsubmission/?itp=ISA"
-puturl ="putresult/"
-rawBashCommand= 'sudo ip netns exec isabelle-server python2.7 grader.py "{0}" "{1}" "{2}" {3}' 
-path="/var/lib/isabelle-grader/"
+        # Set standard configuration
+        self.pollurl_template = "pollsubmission/?itp={}"
+        self.polllurl = "pollsubmission/?itp="
+        self.puturl = "putresult/"
+        self.itp = None
+        self.headers = {"Content-Type": "application/json",
+                        "Authorization": "Token %s" % token}
 
+        # Init
+        self.init()
 
-## MAIN FUNCTIONALITY
-if __name__ == "__main__":
-	#print(len(sys.argv))
-	#if len(sys.argv) < 1:
-	#	print("Unexpected number of command line arguments. Aborting!")
-	#	sys.exit()
+    @abstractmethod
+    def init(self):
+        pass
 
-	loglevel=logging.INFO
-	if len(sys.argv) > 1:
-		if sys.argv[1] == "DEBUG":
-			loglevel=logging.DEBUG
+    # Grade a submission.
+    # Parameters:
+    #   the submission ID:		submission_id
+    #   the assessment ID:		assessment_id
+    #   the defs file:			defs
+    #   the submission file:	submission
+    #   the check file:			check
+    #   the image: 				image
+    #   ITP's version:			version
+    #   timeout_socket:
+    #   timeout_all:
+    #   Sorry allowed?:         allow_sorry
+    #   Name of file to check:  check_file
+    # Returns: (result, error, items)
+    #   result: the score (integer 0..1 as a string) or None
+    #   error:  error message or None
+    #   items:  list of info messages
+    @abstractmethod
+    def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry=None, check_file=None):
+        pass
 
-	## INITIALIZE LOGGING
-	logging.basicConfig(filename="poller.log",
-		                        filemode='a',
-		                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-		                        datefmt='%m-%d %H:%M:%S',
-		                        level=loglevel)
+    @abstractmethod
+    def tidy(self):
+        pass
 
-	logger = logging.getLogger('poller') 
+    # Main loop
+    def run(self):
+        logger = self.logger
+        logger.info("entering the polling loop")
+        while True:
+            time.sleep(5)
+            grader_msg = ""
 
-	logger.info("#####################")
-	logger.info ("starting up Poller")
-	logger.debug ("in debug mode")
+            # poll from server
+            logger.debug("poll from server")
 
+            url = self.baseurl + self.pollurl
 
-	while True:
+            # send get request
+            response = requests.get(url, verify=True, headers=self.headers)
+            logger.debug("sent GET request to " + url)
 
-		# wait for poller.watch to be ready
-		isready = False;
-		while not isready: 
-			watch_dog = open("poller.watch", "r")
-			wd = watch_dog.read().strip()
-			isready = (wd == "ready")
-			logger.info ("waiting for poller.watch : %s (%s)"%(wd,isready)) 
-			watch_dog.close()
-			time.sleep(5)
+            # work with answer
+            if response.ok:
+                data = json.loads(response.content)
 
+                # no task available
+                if data["sID"] == -1:
+                    logger.debug("no submission found - sleep some time")
+                    time.sleep(5)
 
-		## READ CONFIG
-		# config contains: token (to access restapi), pwd (to access Isabelle Server), 
-		#					baseurl (to access restapi) )
-		logger.info ("reading config")
-		config= open("config", "r") 
-		cnf = json.loads(config.read()) 
-		config.close()
-	
-		pwd = cnf["pwd"]
-		token = cnf["token"]
-		baseurl = cnf["baseurl"]
-		headers={"Content-Type": "application/json", "Authorization": "Token %s"%token}
+                # got a task to grade:
+                else:
+                    logger.info(
+                        "==================================================")
+                    logger.info(
+                        "got submission {} to grade.".format(data["sID"]))
 
-		logger.info("pwd %s, token %s"%(pwd,token)) 
+                    logger.debug(
+                        "The grading-task data contains {0} properties".format(len(data)))
+                    logger.debug("\n")
+                    for key in data:
+                        logger.debug(key + " : " + str(data[key]))
 
+                    submission_id = data["sID"]
+                    assessment_id = data["aID"]
+                    allow_sorry = data["allow_sorry"]
 
-		logger.info ("entering the polling loop")
-	
-		
-		watchdog_error = False
-		## STARTING THE MAIN POLLING LOOP
-		while not watchdog_error :
-			time.sleep(5)
-			grader_msg = "" 
+                    try:
+                        result, error, items = self.grade_submission(submission_id, assessment_id, data["files"]["Defs"], data[
+                            "files"]["Submission"], data["files"]["Check"], data["image"], data["version"], data["timeout_socket"],
+                            data["timeout_all"], data["allow_sorry"], data["checkfile"] if checkfile in data else None)
+                    # In case the grader signals that the watchdog should restart the whole thing.
+                    except Grader_Panic:
+                        self.tidy()
+                        raise Watchdog_Restart()
 
-			## poll from server
-			logger.debug("poll from server")
+                    data = json.dumps(
+                        {'result': result, 'sID': submission_id, 'aID': assessment_id, 'msg': "\n".join(items)})
 
+                    logger.debug("put the result back to the server")
+                    response = requests.post(
+                        self.baseurl + self.puturl, data=data, headers=self.headers)
 
-			url=baseurl+pollurl
+                    if(response.ok):
+                        data = json.loads(response.content)
+                        logger.debug(
+                            "The response contains {0} properties".format(len(data)))
+                        logger.debug("\n")
+                        for key in data:
+                            logger.debug(key + " : " + data[key])
+                    else:
+                        response.raise_for_status()
 
-			# send get request
-			myResponse = requests.get(url, verify=True, headers=headers)
-			logger.debug ("sent GET request to " + url)
+            else:
+                try:
+                    response.raise_for_status()
+                except requests.HTTPError as e:
+                    logger.debug(e)
 
-			# work with answer
-			if(myResponse.ok):
-				jData = json.loads(myResponse.content)
-
-				# NO TASK available
-				if jData["sID"] == -1:
-					logger.debug( "no submission found - sleep some time")
-					time.sleep(5)
-
-				# Got a task to grade:
-				else:
-					logger.info("==================================================")
-					logger.info("got submission " + str(jData["sID"]) + " to grade.")
-
-					logger.debug("The grading-task data contains {0} properties".format(len(jData)))
-					logger.debug("\n")
-					for key in jData:
-						logger.debug( key + " : " + str(jData[key]))
-					  
-		
-					submissionId=jData["sID"]
-					assessmentId=jData["aID"]
-					allow_sorry=jData["allow_sorry"]
-
-					#### STARTING FROM HERE things get ProofAssistant-specific
-					# all the necessary data is here:
-					#  the submission ID:		submissionId
-					#  the assessment ID:		assessmentId
-					#  the defs file:			jData["files"]["Defs"]
-					#  the submission file:		jData["files"]["Submission"]
-					#  the check file:			jData["files"]["Check"]
-					#  the image: 				jData["image"]
-					#  ITP's version:			image=jData["version"]
-
-
-				    # Check for illegal keywords in submission
-					res = check_for_keywords(jData["files"]["Submission"], allow_sorry)
-					if not res["result"]:
-						grader_msg = res["message"]
-						result = "0"
-					else:
-						# write files into shared folder with Isabelle server
-						logger.debug("write the theory files")
-						for thyfile in jData["files"]:
-							content = jData["files"][thyfile]
-							if thyfile == "Defs":
-								thyfile = "Defs0" 
-								p = content.split("imports",1)
-								#q = p[1].split("begin",1)
-								content = "theory Defs0 imports" + p[1] # q[0] + " OK_Test " + "begin" + q[1]
-							logger.debug ("writing file '" + path+thyfile+".thy" + "'!")
-							text_file = open(path+thyfile+".thy", "w")
-							text_file.write(content)
-							text_file.close()
-
-						filename=jData["checkfile"]
-						image=jData["image"]
-						timeout_socket=jData["timeout_socket"]
-
-						# check the file
-						logger.info("-> Check the theories!")
-						bashCommand = rawBashCommand.format(pwd,image,path+filename,timeout_socket)
-						logger.info( bashCommand )
-
-						timeout_sec = jData["timeout_all"] 
-						returncode = -1
-						timedout = True
-						process = subprocess.Popen(bashCommand , stdout=subprocess.PIPE, shell=True)
-						try:
-							output, error = process.communicate(timeout=timeout_sec)
-							timedout=False
-							returncode = process.returncode
-						except subprocess.TimeoutExpired:
-							timedout=True
-
-
-						if timedout:
-							logger.info("the checking process was killed !!")
-							returncode = 8
-							grader_msg = "the checking process was killed after % s !!"%timeout_sec
-						else:
-							# get the return message			
-							try:
-								grader_output = open("grader.out", "r")
-								grader_msg = grader_output.read() 
-								grader_output.close()
-								# invalidate grader output in order to spot bugs
-								text_file = open("grader.out", "w")
-								text_file.write("should be clean")
-								text_file.close()
-							except:
-								grader_msg = "no message"
-
-						logger.info("-> Checking is done")
-
-						logger.info("return code is:" + str(returncode))
-
-
-					
-
-						if returncode == 4:
-							# sucessfully checked
-							result = "1"
-						else:
-							# error occured or wrong
-							result = "0" 
-
-					#### ONLY UNTIL HERE things are ProofAssistant-specific	
-					# now the following data should be set in these variables
-					# the score (integer 0...1 as a string): 	result
-					# Id of the submission:						submissionId
-					# Id of the assessment:						assessmentId
-					# some message (string):					grader_msg
-
-
-					if "Timer already cancelled" in grader_msg:
-						# signal error
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")				
-						logger.info("found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
-				
-						watch_dog = open("poller.watch", "w")
-						watch_dog.write("error")
-						watch_dog.close()
-						watchdog_error = True
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")		
-						logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-
-					else:
-						data=json.dumps({'result': result, 'sID': submissionId, 'aID': assessmentId, 'msg': grader_msg})
-				
-						logger.debug("put the result back to the server")
-						response = requests.post(baseurl+puturl,data=data, headers=headers)
-		
-						if(response.ok):
-							jData = json.loads(response.content)
-							logger.debug("The response contains {0} properties".format(len(jData)))
-							logger.debug("\n")
-							for key in jData:
-								logger.debug(key + " : " + jData[key])
-						else:
-							response.raise_for_status()
-					logger.info("==================================================")
-			else:
-				try:
-					myResponse.raise_for_status()
-				except requests.HTTPError as e:
-					logger.debug(e)
-
-			
-
-			logger.debug("and start all over :)")
-
-
-
+            logger.debug("and start all over :)")
