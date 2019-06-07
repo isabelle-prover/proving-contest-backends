@@ -3,7 +3,7 @@ import json
 import sys
 import time
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from watchdog import Watchdog_Restart
 
 

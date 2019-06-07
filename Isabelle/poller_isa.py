@@ -185,3 +185,4 @@ if __name__ == "__main__":
         Poller_Isa(loglevel).run()
 
     poller = Watchdog(poll, loglevel)
+    poller.watch()

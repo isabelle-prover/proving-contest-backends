@@ -7,7 +7,7 @@ class Watchdog_Restart(Exception):
 
 
 class Watchdog:
-    def __init__(self, watched, loglevel=logger.INFO):
+    def __init__(self, watched, loglevel=logging.INFO):
         self.watched = watched
 
         # Initialize logging
@@ -34,7 +34,7 @@ class Watchdog:
                 watch_dog = open("poller.watch", "r")
                 wd = watch_dog.read().strip()
                 is_ready = (wd == "ready")
-                logger.info("waiting for poller.watch : %s (%s)" %
+                self.logger.info("waiting for poller.watch : %s (%s)" %
                             (wd, is_ready))
                 watch_dog.close()
                 time.sleep(5)
@@ -42,7 +42,7 @@ class Watchdog:
             try:
                 self.watched()
             except Watchdog_Restart:
-                logger.info("watch dog was instructed to restart")
+                self.logger.info("watch dog was instructed to restart")
                 watch_dog = open("poller.watch", "w")
                 watch_dog.write("error")
                 watch_dog.close()
