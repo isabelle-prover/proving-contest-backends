@@ -201,14 +201,16 @@ let spawn_lwt ~timeout ~timeout_err ~workdir cmd =
   let open Lwt.Infix in
   let child_pid = spawn ~workdir cmd in
   Lwt.pick [
-    (Lwt_unix.sleep timeout >>= fun () -> Lwt.return (Error timeout_err));
+    (Lwt_unix.sleep (float timeout) >>= fun () ->
+     Unix.kill child_pid Sys.sigkill;
+     Lwt.return (Error timeout_err));
     (Lwt_unix.waitpid [] child_pid >>= fun (_,status) -> Lwt.return (Ok status));
   ]
 
-let compile_submission workdir =
+let compile_submission ~timeout workdir =
   let open Lwt_result.Infix in
   let compile f =
-    spawn_lwt ~workdir ~timeout:60. ~timeout_err:("Timeout: " ^ f)
+    spawn_lwt ~workdir ~timeout ~timeout_err:("Timeout: " ^ f)
       (Printf.sprintf "coqc -R . %s '%s'" toplevel_namespace f) >>= function
     | Lwt_unix.WEXITED 0 -> Lwt_result.return ()
     | _ -> Lwt_result.fail ("Non-zero exit code when compiling " ^ f)
@@ -221,12 +223,12 @@ let compile_submission workdir =
   | Error msg -> Printf.eprintf "%s\n" msg; exit 1
 
 let driver
-    debug coq_path ml_path load_path rload_path in_dir omit_loc
-    omit_att exn_on_opaque
+    timeout debug coq_path ml_path load_path rload_path in_dir
+    omit_loc omit_att exn_on_opaque
   =
   (* Build the submission *)
   check_submission_dir in_dir;
-  compile_submission in_dir;
+  compile_submission ~timeout in_dir;
   let in_file = checks in_dir in
 
   (* Requires for the check file document *)
@@ -255,13 +257,17 @@ let main () =
 
   let input_dir =
     let doc = "Input directory containing the submission." in
-    Arg.(required & pos 0 (some string) None & info [] ~docv:("DIR") ~doc)
+    Arg.(required & pos 0 (some string) None & info [] ~docv:"DIR" ~doc)
+  in
+  let timeout =
+    let doc = "Time limit when compiling the submission" in
+    Arg.(value & opt int 60 & info ["timeout"] ~docv:"SECONDS" ~doc)
   in
 
   let main_cmd =
     let open Sertop_arg in
     Term.(const driver
-          $ debug $ prelude
+          $ timeout $ debug $ prelude
           $ ml_include_path $ load_path $ rload_path $ input_dir $ omit_loc
           $ omit_att $ exn_on_opaque
          ),
