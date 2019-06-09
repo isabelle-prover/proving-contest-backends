@@ -1,0 +1,51 @@
+#!/bin/bash
+
+checkPID() {
+    PID=`cat $1`
+
+    if [ "$PID" == "-1" ]
+    then
+        running="-1"
+    elif ps -p $PID > /dev/null
+    then
+        running="$PID"
+    else
+        echo "-1" > $1
+        running="-1"
+    fi
+    echo $running
+}
+
+pollerPID=`checkPID pollerPID`
+
+if [ "$1" == "status" ]; then
+    if [ $pollerPID == "-1" ]; then
+        echo "Poller: down"
+    else
+        echo "Poller: up (PID=$pollerPID)"
+    fi
+
+elif [ "$1" == "stop" ]; then
+    echo "A) stop Poller"
+    if [ $pollerPID == "-1" ]; then
+        echo "no poller is running"
+    else
+        echo "kill poller process (PID=$pollerPID) now"
+        kill $pollerPID && echo "-1" > pollerPID
+    fi
+
+elif [ "$1" == "start" ]; then
+    if [ $pollerPID == "-1" ]; then
+        echo "starting poller now"
+        dune build grader/grader.exe
+        PYTHONPATH=.. python3 poller_coq.py &
+        pollerPID=$!
+        echo "started a poller (PID=$pollerPID)"
+        echo $pollerPID > pollerPID
+    else
+        echo "there is already a poller running (PID=$pollerPID)"
+    fi
+
+else
+    echo "Unknown command! usage: status|start|stop"
+fi

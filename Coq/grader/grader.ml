@@ -77,8 +77,18 @@ end
 
 let allowed_axioms : string list ref = ref []
 
-let pp_command pp cmd =
-  Sexplib.Sexp.pp_hum pp (sexp_of_command cmd)
+let pp_command ppf (cmd, res) =
+  let with_res ppf p =
+    Format.fprintf ppf "@[<v>%t@,@[-->@ %a@]@,@,@]"
+      p (Result.pp Format.silent) res in
+  match cmd with
+  | Allow_axioms _ -> ()
+  | Check (thmname, stmt) ->
+    with_res ppf (fun ppf ->
+      Format.fprintf ppf "@[Check@ %s:@ %s@]" thmname stmt)
+  | Check_refl stmt ->
+    with_res ppf (fun ppf ->
+      Format.fprintf ppf "@[Check_refl@ %s@]" stmt)
 
 let check_refl thm =
   add_then_exec ("Goal " ^ thm ^ ". reflexivity. Qed.")
@@ -136,14 +146,21 @@ let input_doc ~in_file ~requires =
     close_in cin;
     s
   in
-  let commands = List.map command_of_sexp input_sexps in
-  List.iter (fun s -> add_then_exec s |> ignore) requires;
-  List.iter (fun command ->
-    Format.fprintf Format.err_formatter "@[-->@ %a@]@." pp_command command;
-    let res = run_command command in
-    Format.fprintf Format.err_formatter "@[<--@ %a@]@.@."
-      (Result.pp Format.silent) res
-  ) commands
+  let had_errors = ref false in
+  try
+    let commands = List.map command_of_sexp input_sexps in
+    List.iter (fun s -> add_then_exec s |> ignore) requires;
+    List.iter (fun command ->
+      let res = run_command command in
+      (match res with Error _ -> had_errors := true | Ok () -> ());
+      pp_command Format.std_formatter (command, res);
+    ) commands;
+    if !had_errors then Error () else Ok ()
+  with Sexplib.Conv.Of_sexp_error (e, sexp) ->
+    Format.eprintf "Invalid check file:\n%s\n%a\n"
+      (Printexc.to_string e)
+      Sexplib.Sexp.pp_hum sexp;
+    Error ()
 
 (***************)
 
@@ -183,7 +200,7 @@ let check_submission_dir dir =
   && Sys.file_exists (checks dir)
   then ()
   else (
-    Printf.eprintf "Incorrect submission directory\n";
+    Printf.printf "Incorrect submission directory\n";
     exit 1
   )
 
@@ -220,7 +237,7 @@ let compile_submission ~timeout workdir =
     compile submission_f
   end |> function
   | Ok () -> ()
-  | Error msg -> Printf.eprintf "%s\n" msg; exit 1
+  | Error msg -> Printf.printf "%s\n" msg; exit 1
 
 let driver
     timeout debug coq_path ml_path load_path rload_path in_dir
@@ -249,8 +266,9 @@ let driver
   let doc, _sid = create_document ~in_file ~iload_path ~debug in
 
   (* main loop *)
-  let () = input_doc ~in_file ~requires in
-  close_document ~doc ()
+  let res = input_doc ~in_file ~requires in
+  close_document ~doc ();
+  res
 
 let main () =
   let open Cmdliner in
@@ -275,8 +293,8 @@ let main () =
   in
 
   try match Term.eval ~catch:false main_cmd with
-    | `Error _ -> exit 1
-    | _        -> exit 0
+    | `Version | `Help | `Ok (Ok ()) -> exit 0
+    | `Error _ | `Ok (Error ()) -> exit 1
   with exn ->
     let (e, info) = CErrors.push exn in
     fatal_exn e info
