@@ -18,7 +18,7 @@ if [ "$running" == "0" ]
 	then
 	echo "starting poller now"
 
-	python3 poller_lean.py &
+	PYTHONPATH=.. python3 poller_lean.py &
 	pollerPID=$!
 	echo "started a poller (PID=$pollerPID)"	
 	echo $pollerPID > pollerPID

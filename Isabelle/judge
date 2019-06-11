@@ -60,7 +60,7 @@ then
 
 	echo "ready" > poller.watch
 
-	sudo $pythonversion poller.py &
+	sudo PYTHONPATH=.. $pythonversion poller.py &
 	pollerPID=$!
 	echo "started a poller (PID=$pollerPID)"	
 	echo $pollerPID > pollerPID

@@ -4,6 +4,8 @@ import re
 import codecs
 import subprocess
 
+from poller import Poller, Grader_Panic
+
 pollurl = "pollsubmission/?itp=LEA"
 puturl = "putresult/"
 grader_path = "/var/lib/lean-grader/"
