@@ -29,8 +29,8 @@ ASSUMPTIONS:
 HOW TO START THE SERVER (Isabelle Server + Poller)
 
 1)
-put the sessions you need into the file "sessions"
-each session in one line.
+put the sessions you need into the file "sessions",
+one session a line. You can find an example in 'sessions.temp'.
 
 2) prepare the server 
 
@@ -40,7 +40,7 @@ this will build session images, place
 Defs and OK_Test into /var/lib/isabelle-grader/,
 as well as heaps and settings for Isabelle.
 
-this may take a while if new images need to be build
+this may take a while if new images need to be built
 
 3) Copy `config.temp` to `config` and fill in the details
 
