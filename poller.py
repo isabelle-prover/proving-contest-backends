@@ -12,6 +12,9 @@ class Grader_Panic(Exception):
 
 
 class Poller(ABC):
+    pollurl_template = "pollsubmission/?itp={}"
+    puturl = "putresult/"
+
     def __init__(self, loglevel=logging.INFO):
 
         # Initialize logging
@@ -42,16 +45,19 @@ class Poller(ABC):
         self.config = cnf
 
         # Set standard configuration
-        self.pollurl_template = "pollsubmission/?itp={}"
-        self.pollurl = "pollsubmission/?itp="
-        self.puturl = "putresult/"
-        self.itp = None
+        self.pollurl = None
+        self.puturl = Poller.puturl
         self.headers = {"Content-Type": "application/json",
                         "Authorization": "Token {}".format(self.token)}
 
         # Init
         self.init()
 
+    # Convenience method to set pollurl.
+    def make_pollurl(self, itp_abbreviation):
+        self.pollurl = Poller.pollurl_template.format(itp_abbreviation)
+
+    # This method should at a minimum set pollurl.
     @abstractmethod
     def init(self):
         pass

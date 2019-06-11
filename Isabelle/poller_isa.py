@@ -98,6 +98,7 @@ class Poller_Isa(Poller):
     def init(self):
         self.password = self.config["pwd"]
         self.logger.info("pwd {}, token {}".format(self.password, self.token))
+        self.make_pollurl("ISA")
 
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry, check_file):
         global raw_bash_command, grader_path

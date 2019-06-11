@@ -16,7 +16,7 @@ axiom_re = re.compile("axiom ([^ ]*) .*")
 class Poller_Lean(Poller):
 
     def init(self):
-        pass
+        self.make_pollurl("LEA")
 
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry, check_file):
         global grader_path, lean_compile_and_check, axiom_re
