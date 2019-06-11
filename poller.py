@@ -37,12 +37,9 @@ class Poller(ABC):
         cnf = json.loads(config.read())
         config.close()
 
-        pwd = cnf["pwd"]  # XXX Should this be here?
-        self.password = pwd
         self.token = cnf["token"]
         self.baseurl = cnf["baseurl"]
-
-        logger.info("pwd %s, token %s" % (pwd, self.token))
+        self.config = cnf
 
         # Set standard configuration
         self.pollurl_template = "pollsubmission/?itp={}"
@@ -50,7 +47,7 @@ class Poller(ABC):
         self.puturl = "putresult/"
         self.itp = None
         self.headers = {"Content-Type": "application/json",
-                        "Authorization": "Token %s" % self.token}
+                        "Authorization": "Token {}".format(self.token)}
 
         # Init
         self.init()

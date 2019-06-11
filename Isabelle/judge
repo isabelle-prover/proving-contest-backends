@@ -62,7 +62,7 @@ then
 
 	sudo $pythonversion poller.py &
 	pollerPID=$!
-	echo "started an poller (PID=$pollerPID)"	
+	echo "started a poller (PID=$pollerPID)"	
 	echo $pollerPID > pollerPID
 
 elif [ "$1" == "initwatchdog" ]

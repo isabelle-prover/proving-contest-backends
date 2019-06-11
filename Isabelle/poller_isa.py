@@ -96,8 +96,8 @@ grader_path = "/var/lib/isabelle-grader/"
 class Poller_Isa(Poller):
 
     def init(self):
-        # XXX Read password?
-        pass
+        self.password = self.config["pwd"]
+        self.logger.info("pwd {}, token {}".format(self.password, self.token))
 
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry, check_file):
         global raw_bash_command, grader_path
@@ -176,6 +176,7 @@ class Poller_Isa(Poller):
 
     def tidy(self):
         pass
+
 
 if __name__ == "__main__":
     loglevel = logging.INFO

@@ -18,12 +18,12 @@ if [ "$running" == "0" ]
 	then
 	echo "starting poller now"
 
-	python3 poller.py &
+	python3 poller_lean.py &
 	pollerPID=$!
-	echo "started an poller (PID=$pollerPID)"	
+	echo "started a poller (PID=$pollerPID)"	
 	echo $pollerPID > pollerPID
 
 
 else
-	echo "there is already an poller running (PID=$pollerPID)"		
+	echo "there is already a poller running (PID=$pollerPID)"		
 fi
