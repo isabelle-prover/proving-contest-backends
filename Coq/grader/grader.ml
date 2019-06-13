@@ -29,16 +29,10 @@ let result_of_ans ans =
       | ObjList _ -> warn "Unexpected ObjList"; None
       | Canceled _ -> warn "Unexpected Canceled"; None
       | Added _ -> warn "Unexpected Added"; None
-      | CoqExn (_,_,_,exn) -> Some exn
+      | CoqExn SP.ExnInfo.{ pp; _ } -> Some (Pp.string_of_ppcmds pp)
     ) ans in
   if List.is_empty error_ans then Ok ()
-  else
-    Error (
-      List.map (fun exn ->
-        Sexplib.Sexp.to_string_hum (Sexplib.Conv.sexp_of_exn exn)
-      ) error_ans
-      |> reduce (fun a b -> a ^ "\n" ^ b)
-    )
+  else Error (reduce (fun a b -> a ^ "\n" ^ b) error_ans)
 
 let add_then_exec stmt =
   let add_ans =
@@ -255,20 +249,18 @@ let driver
   ] in
 
   (* initialization *)
-  let options = Serlib_init.{ omit_loc; omit_att; exn_on_opaque } in
-  Serlib_init.init ~options;
+  let options = Serlib.Serlib_init.{ omit_loc; omit_att; exn_on_opaque } in
+  Serlib.Serlib_init.init ~options;
 
   let rload_path =
     (coq_lp_conv ~implicit:true (in_dir, toplevel_namespace)) :: rload_path in
   let iload_path =
     Serapi_paths.coq_loadpath_default ~implicit:true ~coq_path
     @ ml_path @ load_path @ rload_path in
-  let doc, _sid = create_document ~in_file ~iload_path ~debug in
+  let _doc, _sid = create_document ~in_file ~iload_path ~debug in
 
   (* main loop *)
-  let res = input_doc ~in_file ~requires in
-  close_document ~doc ();
-  res
+  input_doc ~in_file ~requires
 
 let main () =
   let open Cmdliner in
