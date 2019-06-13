@@ -73,8 +73,8 @@ class Poller(ABC):
     #   ITP's version:			version
     #   timeout_socket:
     #   timeout_all:
-    #   Sorry allowed?:         allow_sorry
-    #   Name of file to check:  check_file
+    #   Sorry allowed?:         allow_sorry    (optional)
+    #   Name of file to check:  check_file     (optional)
     # Returns: (result, error, items)
     #   result: the score (integer 0..1 as a string) or None
     #   error:  error message or None
