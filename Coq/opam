@@ -1,0 +1,18 @@
+name: "proving-contest-coq-backend"
+synopsis: "Coq backend for the proving contest platform"
+opam-version: "2.0"
+maintainer: "armael.gueneau@inria.fr"
+bug-reports: "armael.gueneau@inria.fr"
+authors: [
+  "Armaël Guéneau <>"
+]
+depends: [
+  "dune"
+  "coq" {= "8.10+dune"}
+  "coq-serapi"
+  "containers"
+  "lwt"
+]
+pin-depends: [
+  [ "coq-serapi.dev" "git+https://github.com/ejgallego/coq-serapi#v8.10" ]
+]

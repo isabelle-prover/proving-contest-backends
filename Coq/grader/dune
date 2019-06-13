@@ -1,0 +1,10 @@
+(executable
+  (name grader)
+  (link_flags -linkall)
+  (libraries coq-serapi.serlib coq-serapi.serapi_v8_10 coq-serapi.sertop_v8_10
+             lwt lwt.unix containers)
+  (preprocess (pps ppx_sexp_conv)))
+
+(env
+ (dev     (flags :standard -rectypes))
+ (release (flags :standard -rectypes)))
