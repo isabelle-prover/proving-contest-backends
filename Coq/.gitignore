@@ -2,3 +2,9 @@
 grader/_build
 poller.log
 pollerPID
+_build
+_opam
+grader_workdir
+*.vo
+*.glob
+*.aux

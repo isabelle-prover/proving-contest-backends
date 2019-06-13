@@ -13,3 +13,30 @@ If the opam invocation fails for some reason: after you fix the cause of the
 issue, either remove the `_opam` repository and re-run the `prepare.sh` script
 (this will redo everything), or do `eval $(opam env)` and then `opam install -y
 --deps-only .` (this will continue from where it failed).
+
+## Syntax of the check files
+
+A `checks.sexp` file consists of a list of statements, in s-expression syntax,
+that are either:
+
+- `(Check "thm_name" "theorem type")`
+
+  This will check that a theorem has the expected type. This will be done in an
+  environment corresponding to running `Require Import Defs. Require
+  Submission.`. In particular this means that names from the submission must be
+  qualified (e.g `Submission.the_name`).
+
+  This will also check that the user theorem does not rely on unwanted axioms.
+
+- `(Check_refl "statement")`
+
+  Checks that the given statement holds by reflexivity (useful to test that user
+  definitions satisfy basic computational properties).
+
+- `(Allow_axioms (Coq.Logic.Classical_Prop.classic ...))`
+
+  Allow some axioms in the rest of the file. The axiom names must be fully
+  qualified.
+
+
+For some simple examples, see [grader/workdir](grader/workdir).
