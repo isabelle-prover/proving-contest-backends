@@ -14,6 +14,11 @@ issue, either remove the `_opam` repository and re-run the `prepare.sh` script
 (this will redo everything), or do `eval $(opam env)` and then `opam install -y
 --deps-only .` (this will continue from where it failed).
 
+## Running the grader
+
+Use `./judge start` to run the grader (in the background), and `./judge stop` to
+stop it.
+
 ## Syntax of the check files
 
 A `checks.sexp` file consists of a list of statements, in s-expression syntax,
