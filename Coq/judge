@@ -37,6 +37,7 @@ elif [ "$1" == "stop" ]; then
 elif [ "$1" == "start" ]; then
     if [ $pollerPID == "-1" ]; then
         echo "starting poller now"
+        eval $(opam env)
         dune build grader/grader.exe
         PYTHONPATH=.. python3 poller_coq.py &
         pollerPID=$!
