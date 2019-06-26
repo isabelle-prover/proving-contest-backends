@@ -18,6 +18,7 @@ PARSE_ERROR = -3
 SOCKET_TIMEOUT = -4
 SOCKET_ERROR = -5
 PROTOCOL_ERROR = -6
+UNKNOWN_STATUS = -10
 
 # Return codes
 SKIPPED_THEORY = 3
@@ -65,7 +66,7 @@ def receive(socket, verbose):
     logger.debug("Starting to receive message")
     data = socket.recv(1024)
     if verbose:
-        logger.debug('Received', repr(data))
+        logger.debug('Received %s' % repr(data))
     if len(data) == 0:
         logger.debug("Error: socket broken (receive)")
         raise SocketBroken("Socket broken (receive)")
@@ -179,7 +180,7 @@ if __name__ == "__main__":
         logger.info("Error while connecting to Isabelle/Server")
         sys.exit(CONNECTION_ERROR)
 
-    return_code = UNKNOWN_ERROR
+    return_code = UNKNOWN_STATUS
     try:
 
         (cmd, msgdict) = twoway(password, s)
