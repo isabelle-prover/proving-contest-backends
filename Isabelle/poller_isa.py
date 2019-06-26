@@ -160,7 +160,7 @@ class Poller_Isa(Poller):
                 grader_msg = output
 
             logger.info("-> Checking is done")
-            logger.info("Return code is:" + str(return_code))
+            logger.info("Return code is: %d" % return_code)
 
             if return_code == 4:
                 # successfully checked

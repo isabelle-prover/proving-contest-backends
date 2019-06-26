@@ -9,7 +9,7 @@ logging.basicConfig(filename="grader.log",
                     datefmt='%m-%d %H:%M:%S',
                     level=logging.INFO)
 
-logger = logging.getLogger('poller')
+logger = logging.getLogger('grader')
 
 # Error codes
 UNKNOWN_ERROR = -1
