@@ -1,265 +1,287 @@
 import sys
 import socket
 import json
+import logging
 
+logging.basicConfig(filename="grader.log",
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%m-%d %H:%M:%S',
+                    level=logging.INFO)
+
+logger = logging.getLogger('poller')
+
+# Error codes
+UNKNOWN_ERROR = -1
+CONNECTION_ERROR = -2
+PARSE_ERROR = -3
+SOCKET_TIMEOUT = -4
+SOCKET_ERROR = -5
+PROTOCOL_ERROR = -6
+
+# Exit codes
+SKIPPED_THEORY = 3
+CHECKING_SUCCESS = 4
+NOT_OK = 5
+CHECKING_TIMEOUT = 100
+ALL_GOOD = 150
+
+
+class ParseError(ValueError):
+    pass
+
+
+class SocketBroken(Exception):
+    pass
+
+
+class BrokenMessage(Exception):
+    pass
+
+
+# Parse an Isabelle/Server message of the following format:
+# CMD JSON_BODY
 def parse(msg):
-	datamsg = str(msg)
-	
-	pos = datamsg.find(' ')
-	
-	cmd=datamsg[0:pos]
-	jsonmsg=datamsg[pos+1:]
+    data_msg = str(msg)
 
-	msgdict = json.loads(jsonmsg)
-	
-	return cmd, msgdict
-	
+    pos = data_msg.find(' ')
+    if pos < 0:
+        raise ParseError()
 
-def send(msg,socket):
-	socket.sendall((msg + "\n").encode('utf-8'))
-	print("sent")
+    cmd = data_msg[0:pos]
+    json_msg = data_msg[pos+1:]
+
+    msgdict = json.loads(json_msg)
+
+    return cmd, msgdict
 
 
-def receive(socket,verbose):
-	print( "start of receive")
-	data = socket.recv(1024)
-	if verbose: 
-		print('Received', repr(data))
-	if len(data)==0:
-		print("Error: socket broken (receive)")
-		sys.exit(-1)
+def send(msg, socket):
+    global logger
+    socket.sendall((msg + "\n").encode('utf-8'))
+    logger.debug("Sent message via socket")
 
-	results = []
-	while len(data)>0 :
-		firstnl = data.find('\n')
-		if firstnl < 0 :
-			print( "Error: no newline found (receive)")
-			sys.exit(-1)
-		first = data[0:firstnl]
-		data = data[firstnl+1:]
-		if first.isdigit() :
-			# we have a "long message"
-			print( "we have a long message here")
-			print( data)
-			length = int(first) 
-			if length <= len(data) :
-				# we already have the whole message, but maybe more messages in data
-				print "scanned too much!"
-				results.append(data[:length])
-				data=data[length:]
-				#if len(data)>0 :
-				#	print( "===========================================")
-				#	print( "thats the rest:")
-				#	print( data )
-				#	print( "that was the rest:" )
-			else:
-				# we need to get the rest of the message
-				print("need to get the rest!")
-				firstpart = data
-				data = ""
-				#print("len so far", len(firstpart))
-				#print("data so far", firstpart)
-				#print("length", length)
-				rest = length-len(firstpart)  
-				#print("rest", rest)
 
-				thisdata = firstpart
-				# now try to get the answer
-				while rest>0:
-					datarest = socket.recv(rest)	
-					#print("now we got this much:", len(datarest))	
-					#print("now we got this:", datarest)	
-					rest = rest - len(datarest)
-					thisdata = thisdata + datarest
-				print("final datarest len", len(thisdata))	
-				print("final datarest", thisdata)		
-				#print( "===========================================")
-				#print( "===========================================")
-				#print( "===========================================")	
-				#print( "===========================================")
-				if len(datarest)==0:
-					print( "Error: socket broken (receive rest)")
-					sys.exit(-1)
-				results.append(thisdata)
-		else:
-			# we have a short message
-			results.append(first)
-	return results
- 
-def receiveuntildone(socket,verbose):
-	databuf = []
-	while True:
-		if len(databuf) == 0 :
-			databuf = receive(socket,verbose)
-		data = databuf[0]
-		databuf = databuf[1:]
-		(cmd, msgdict) = parse(data)
-		if cmd == "NOTE":
-			print( "NOTE", msgdict)
-		elif cmd == "FINISHED":
-			print ("FINISHED")
-			break
-		elif cmd == "FAILED":
-			print ("FAILED")
-			break
-	return (cmd, msgdict)
+def receive(socket, verbose):
+    global logger
+    logger.debug("Starting to receive message")
+    data = socket.recv(1024)
+    if verbose:
+        logger.debug('Received', repr(data))
+    if len(data) == 0:
+        logger.debug("Error: socket broken (receive)")
+        raise SocketBroken("Socket broken (receive)")
 
-def twowayOK(msg,socket):
-	send(msg,socket)
-	data = receive(socket,True)
+    results = []
+    while len(data) > 0:
+        pos_newline = data.find('\n')
+        if pos_newline < 0:
+            logger.error("Error: no newline found (receive)")
+            raise BrokenMessage("No newline found (receive)")
+        first = data[0:pos_newline]
+        data = data[pos_newline+1:]
+        if first.isdigit():
+            # we have a "long message"
+            logger.debug("we have a long message here")
+            logger.debug(data)
+            length = int(first)
+            if length <= len(data):
+                # we already have the whole message, but maybe more messages in data
+                logger.debug("scanned too much!")
+                results.append(data[:length])
+                data = data[length:]
+            else:
+                # we need to get the rest of the message
+                logger.debug("need to get the rest!")
+                first_part = data
+                data = ""
+                rest = length-len(first_part)
 
-	print( data )
+                thisdata = first_part
+                # now try to get the answer
+                while rest > 0:
+                    datarest = socket.recv(rest)
+                    rest = rest - len(datarest)
+                    thisdata = thisdata + datarest
+                logger.debug("final datarest len", len(thisdata))
+                logger.debug("final datarest", thisdata)
+                if len(datarest) == 0:
+                    logger.error("Error: socket broken (receive rest)")
+                    raise SocketBroken("Socket broken (receive rest)")
+                results.append(thisdata)
+        else:
+            # we have a short message
+            results.append(first)
+    return results
 
-	# TODO: here we implicitely assume that we only
-	#		received one message, and throw away the rest,
-	#      also this answer does not carry any information, 
-	#	 	it is expected to be "OK"
-	return data
 
-def twoway(msg,socket):
-	send(msg,socket)
-	data = receive(socket,True)
+# Receive a complete message from Isabelle/Server and parse it.
+def receive_msg(socket, verbose):
+    global logger
+    buffer = []
+    while True:
+        if len(buffer) == 0:
+            buffer = receive(socket, verbose)
+        data = buffer[0]
+        buffer = buffer[1:]
+        (cmd, msgdict) = parse(data)
+        if cmd == "NOTE":
+            logging.debug("NOTE %s" % str(msgdict))
+        elif cmd == "FINISHED":
+            logging.debug("FINISHED")
+            break
+        elif cmd == "FAILED":
+            logging.debug("FAILED")
+            break
+    return (cmd, msgdict)
 
-	print( data )
 
-	# TODO: here we implicitely assume that we only
-	#		received one message, and throw away the rest
-	(cmd, msgdict) = parse(data[0])
-	return (cmd, msgdict)
+def twowayOK(msg, socket):
+    global logger
+    send(msg, socket)
+    data = receive(socket, True)
+
+    logger.debug(data)
+
+    # TODO: here we implicitly assume that we only
+    #		received one message, and throw away the rest,
+    #      also this answer does not carry any information,
+    #	 	it is expected to be "OK"
+    return data
+
+
+def twoway(msg, socket):
+    global logger
+    send(msg, socket)
+    data = receive(socket, True)
+
+    logger.debug(data)
+
+    # TODO: here we implicitly assume that we only
+    #		received one message, and throw away the rest
+    (cmd, msgdict) = parse(data[0])
+    return (cmd, msgdict)
 
 
 if __name__ == "__main__":
-	if len(sys.argv) < 4:
-		print("Unexpected number of command line arguments. Aborting!")
-		sys.exit()
- 	verbose=False
+    if len(sys.argv) < 4:
+        logging.error("Unexpected number of command line arguments. Aborting!")
+        sys.exit(-1)
+    verbose = False
 
-	password =  sys.argv[1] # "d802132e-5bf3-4df9-b90e-d50cefe0e47e"
-	session = sys.argv[2]
-	checkfile = sys.argv[3]
-	timeout = sys.argv[4]
-	#print("Hello world")
-	#print(password) 
+    password = sys.argv[1]  # "d802132e-5bf3-4df9-b90e-d50cefe0e47e"
+    session = sys.argv[2]
+    checkfile = sys.argv[3]
+    timeout = sys.argv[4]
 
-	HOST = '127.0.0.1'    # The remote host
-	PORT = 4711              # The same port as used by the server
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-	s.connect((HOST, PORT))
-	print("connected")
+    try:
+        HOST = '127.0.0.1'    # The remote host
+        PORT = 4711           # The same port as used by the server
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((HOST, PORT))
+        logger.info("Connected to server")
+    except Exception:
+        logger.info("Error while connecting to Isabelle/Server")
+        sys.exit(CONNECTION_ERROR)
 
-	
-	(cmd, msgdict) = twoway(password,s)
-	
-		 
-	print( "result:", cmd)
-	print( "version:", msgdict["isabelle_version"])
+    try:
 
-	
-	print( "============== Starting Session '%s' =================" % session)
+        (cmd, msgdict) = twoway(password, s)
 
-	msgbody = {"session": session}
-	msg = 'session_start %s'% json.dumps(msgbody)
+        logger.info("Result: %s" % cmd)
+        logger.info("Version: %s" % msgdict["isabelle_version"])
 
-	(cmd, msgdict) = twoway(msg,s)
+        logging.info(
+            "============== Starting session '%s' =================" % session)
 
-	print( "result:", cmd)
-	print( "bl:", msgdict)
+        msgbody = {"session": session}
+        msg = 'session_start %s' % json.dumps(msgbody)
 
-	(cmd, msgdict) = receiveuntildone(s,verbose)
-	
-	# print( msgdict)
+        (cmd, msgdict) = twoway(msg, s)
 
-	session_id = msgdict["session_id"]
+        logger.debug("Result command: %s" % cmd)
+        logger.debug("Result message: %s" % msgdict)
 
-	overallresult = 150
+        (cmd, msgdict) = receive_msg(s, verbose)
 
-	if checkfile == "":
-		print ("skip checking theory")
-		overallresult = 3
-        
-	else:
-		print( "============== checking theory =================")
+        session_id = msgdict["session_id"]
 
-		msgbody = {"session_id": session_id, "theories": [checkfile]}
-		msg = 'use_theories %s'% json.dumps(msgbody)
+        result_code = ALL_GOOD
 
-		(cmd, msgdict) = twoway(msg,s)
+        if checkfile == "":
+            logger.info("Skip checking theory")
+            result_code = SKIPPED_THEORY
 
-		print( "result:", cmd)
-		print("bl:", msgdict)
-		print ("taskid:", msgdict["task"])
+        else:
+            logging.info("============== Checking theory =================")
 
-		# the checking should be finished within timeout seconds
+            msgbody = {"session_id": session_id, "theories": [checkfile]}
+            msg = 'use_theories %s' % json.dumps(msgbody)
 
-		s.settimeout(float(timeout))
-		try:
-			(cmd, msgdict) = receiveuntildone(s,verbose)
-			#print(msgdict)
-		 
-			msgout = {"msg": msgdict}
+            (cmd, msgdict) = twoway(msg, s)
 
-			if cmd=="FINISHED":
-				print ("-----------------%s" % msgdict["ok"])
-				print (type (msgdict["ok"]))
-				if msgdict["ok"] :
-					print("Theory checked successfully")
-					overallresult = 4
-				else:
-					print("Theory checking finished but not 'ok'")
-					overallresult = 5
-			else:
-				print("Theory checking failed")
+            logger.info("Checking result: %s" % cmd)
+            logger.info("Checking message: %s" % msgdict)
+            logger.info("Task id: %s" % msgdict["task"])
 
-		except socket.timeout as exc:
-			print("Caught exception socket.timeout : %s" % exc)
-			print("Theory checking failed")
-			msgout = "Caught exception socket.error : %s" % exc
-			overallresult = 100
+            # the checking should be finished within timeout seconds
+            s.settimeout(float(timeout))
+            try:
+                (cmd, msgdict) = receive_msg(s, verbose)
 
-			# try to cancle the task
-			# this seems to break the server that's why we do
-			# not cancel the task until we under stand the bug
-			#s.settimeout(None)
-			#print ("try to cancle task with TaskID"+ str(msgdict["task"]))
-			#msgbody = {"task": msgdict["task"]}
-			#msg = 'cancel %s'% json.dumps(msgbody)
-			#ok = twowayOK(msg,s)
-			#print ("cancelling")
-			#print (ok)
-			# now wait for the response
-			#(cmd, msgdict) = receiveuntildone(s,verbose)
-			#print ("finally:")
-			#print (cmd, msgdict)
+                msgout = {"msg": msgdict}
 
-		s.settimeout(None)
+                if cmd == "FINISHED":
+                    logging.info("-----------------%s" % msgdict["ok"])
+                    logging.info(type(msgdict["ok"]))
+                    if msgdict["ok"]:
+                        logging.info("Theory checked successfully")
+                        result_code = CHECKING_SUCCESS
+                    else:
+                        logging.info("Theory checking finished but not 'ok'")
+                        result_code = NOT_OK
+                else:
+                    logging.info("Theory checking failed")
 
+            except socket.timeout as exc:
+                logging.info("Caught exception socket.timeout : %s" % exc)
+                logging.info("Theory checking failed")
+                msgout = "Caught exception socket.error : %s" % exc
+                result_code = CHECKING_TIMEOUT
 
-		text_file = open("grader.out", "w")
-		text_file.write(json.dumps(msgout))
-		text_file.close()
+            s.settimeout(None)
 
+            text_file = open("grader.out", "w")
+            text_file.write(json.dumps(msgout))
+            text_file.close()
 
-	print("============== Stopping Session '%s' ================="%session)
+        logging.info(
+            "============== Stopping session '%s' =================" % session)
 
-	msgbody = {"session_id": session_id}
-	msg = 'session_stop %s'% json.dumps(msgbody)
+        msgbody = {"session_id": session_id}
+        msg = 'session_stop %s' % json.dumps(msgbody)
 
-	(cmd, msgdict) = twoway(msg,s)
+        (cmd, msgdict) = twoway(msg, s)
 
-	print( "result:", cmd)
-	print( "bl:", msgdict)
+        logging.debug("Result command: %s" % cmd)
+        logging.debug("Result message: %s" % msgdict)
 
+        (cmd, msgdict) = receive_msg(s, verbose)
 
-	(cmd, msgdict) = receiveuntildone(s,verbose)
-	
-	print( msgdict )
+        logging.debug(msgdict)
 
-	s.close()
-	sys.exit(overallresult)
-	
-
-
-
-
-
-
+    except (ParseError, json.JSONDecodeError):
+        # Error while parsing message from Isabelle/Server
+        result_code = PARSE_ERROR
+    except BrokenMessage:
+        result_code = PROTOCOL_ERROR
+    except socket.timeout:
+        result_code = SOCKET_TIMEOUT
+    except (socket.error, SocketBroken):
+        result_code = SOCKET_ERROR
+    except Exception:
+        # Catch all
+        result_code = UNKNOWN_ERROR
+    finally:
+        s.close()
+        sys.exit(result_code)
