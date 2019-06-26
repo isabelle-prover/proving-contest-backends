@@ -147,7 +147,7 @@ class Poller_Isa(Poller):
             try:
                 output, error = process.communicate(timeout=timeout_all)
                 timedout = False
-                return_code = process.return_code
+                return_code = process.returncode
             except subprocess.TimeoutExpired:
                 timedout = True
 
