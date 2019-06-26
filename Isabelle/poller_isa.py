@@ -4,8 +4,17 @@ import re
 import logging
 
 from poller import Poller, Grader_Panic
+from grader import\
+    UNKNOWN_ERROR,\
+    CONNECTION_ERROR,\
+    PARSE_ERROR,\
+    SOCKET_TIMEOUT,\
+    SOCKET_ERROR,\
+    PROTOCOL_ERROR
 from watchdog import Watchdog
 
+# Return codes
+CHECKING_TIMEOUT = 8
 
 # XXX How about typedef and friends?
 # (keyword, is_surrounded_by_whitespace)
@@ -111,14 +120,14 @@ class Poller_Isa(Poller):
             result = "0"
         else:
             # write files into shared folder with Isabelle server
-            logger.debug("write the theory files")
+            logger.debug("Write the theory files")
             for name, content in (("Defs", defs), ("Submission", submission), ("Check", check)):
                 if name == "Defs":
                     name = "Defs0"
                     p = content.split("imports", 1)
                     content = "theory Defs0 imports" + p[1]
                 logger.debug(
-                    "writing file '{}{}.thy'!".format(grader_path, name))
+                    "Writing file '{}{}.thy'!".format(grader_path, name))
                 with open("{}{}.thy".format(grader_path, name), 'w') as text_file:
                     text_file.write(content)
 
@@ -130,47 +139,43 @@ class Poller_Isa(Poller):
                 self.password, image, grader_path + filename, timeout_socket)
             logger.info(bashCommand)
 
-            returncode = -1
+            return_code = -1
             timedout = True
             error = None
             process = subprocess.Popen(
-                bashCommand, stdout=subprocess.PIPE, shell=True)
+                bashCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             try:
                 output, error = process.communicate(timeout=timeout_all)
                 timedout = False
-                returncode = process.returncode
+                return_code = process.return_code
             except subprocess.TimeoutExpired:
                 timedout = True
 
             if timedout:
-                logger.info("the checking process was killed !!")
-                returncode = 8
-                grader_msg = "the checking process was killed after % s !!" % timeout_all
+                logger.info("The checking process was killed")
+                return_code = CHECKING_TIMEOUT
+                grader_msg = "The checking process was killed after % s" % timeout_all
             else:
                 # get the return message
-                grader_msg = "no message"
-                with open("grader.out", "r") as f:
-                    grader_msg = f.read()
-
-                # invalidate grader output in order to spot bugs
-                with open("grader.out", 'w') as f:
-                    f.write("should be clean")
+                grader_msg = output
 
             logger.info("-> Checking is done")
+            logger.info("Return code is:" + str(return_code))
 
-            logger.info("return code is:" + str(returncode))
-
-            if returncode == 4:
-                # sucessfully checked
+            if return_code == 4:
+                # successfully checked
                 result = "1"
+            elif return_code == CONNECTION_ERROR:
+                grader_msg = "Internal error: failed to connect to server"
+                result = "0"
             else:
-                # error occured or wrong
+                # unknown error occurred or wrong
                 result = "0"
 
             if "Timer already cancelled" in grader_msg:
                 # signal error
                 logger.info(
-                    "found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
+                    "Found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
                 raise Grader_Panic()
 
             return result, error, [grader_msg]

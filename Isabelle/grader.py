@@ -19,7 +19,7 @@ SOCKET_TIMEOUT = -4
 SOCKET_ERROR = -5
 PROTOCOL_ERROR = -6
 
-# Exit codes
+# Return codes
 SKIPPED_THEORY = 3
 CHECKING_SUCCESS = 4
 NOT_OK = 5
@@ -206,11 +206,11 @@ if __name__ == "__main__":
 
         session_id = msgdict["session_id"]
 
-        result_code = ALL_GOOD
+        return_code = ALL_GOOD
 
         if checkfile == "":
             logger.info("Skip checking theory")
-            result_code = SKIPPED_THEORY
+            return_code = SKIPPED_THEORY
 
         else:
             logging.info("============== Checking theory =================")
@@ -236,10 +236,10 @@ if __name__ == "__main__":
                     logging.info(type(msgdict["ok"]))
                     if msgdict["ok"]:
                         logging.info("Theory checked successfully")
-                        result_code = CHECKING_SUCCESS
+                        return_code = CHECKING_SUCCESS
                     else:
                         logging.info("Theory checking finished but not 'ok'")
-                        result_code = NOT_OK
+                        return_code = NOT_OK
                 else:
                     logging.info("Theory checking failed")
 
@@ -247,13 +247,10 @@ if __name__ == "__main__":
                 logging.info("Caught exception socket.timeout : %s" % exc)
                 logging.info("Theory checking failed")
                 msgout = "Caught exception socket.error : %s" % exc
-                result_code = CHECKING_TIMEOUT
+                return_code = CHECKING_TIMEOUT
 
             s.settimeout(None)
-
-            text_file = open("grader.out", "w")
-            text_file.write(json.dumps(msgout))
-            text_file.close()
+            print(json.dumps(msgout))
 
         logging.info(
             "============== Stopping session '%s' =================" % session)
@@ -272,16 +269,16 @@ if __name__ == "__main__":
 
     except (ParseError, json.JSONDecodeError):
         # Error while parsing message from Isabelle/Server
-        result_code = PARSE_ERROR
+        return_code = PARSE_ERROR
     except BrokenMessage:
-        result_code = PROTOCOL_ERROR
+        return_code = PROTOCOL_ERROR
     except socket.timeout:
-        result_code = SOCKET_TIMEOUT
+        return_code = SOCKET_TIMEOUT
     except (socket.error, SocketBroken):
-        result_code = SOCKET_ERROR
+        return_code = SOCKET_ERROR
     except Exception:
         # Catch all
-        result_code = UNKNOWN_ERROR
+        return_code = UNKNOWN_ERROR
     finally:
         s.close()
-        sys.exit(result_code)
+        sys.exit(return_code)
