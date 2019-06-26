@@ -15,14 +15,7 @@ class Poller(ABC):
     pollurl_template = "pollsubmission/?itp={}"
     puturl = "putresult/"
 
-    def __init__(self, loglevel=logging.INFO):
-
-        # Initialize logging
-        logging.basicConfig(filename="poller.log",
-                            filemode='a',
-                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%m-%d %H:%M:%S',
-                            level=loglevel)
+    def __init__(self):
 
         logger = logging.getLogger('poller')
 

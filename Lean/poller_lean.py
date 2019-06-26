@@ -70,4 +70,11 @@ if __name__ == "__main__":
         if sys.argv[1] == "DEBUG":
             loglevel = logging.DEBUG
 
-    Poller_Lean(loglevel).run()
+    # Initialize logging
+    logging.basicConfig(filename="poller.log",
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%m-%d %H:%M:%S',
+                        level=loglevel)
+
+    Poller_Lean().run()

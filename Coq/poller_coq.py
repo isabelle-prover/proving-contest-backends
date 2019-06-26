@@ -9,7 +9,9 @@ import shutil
 from poller import Poller, Grader_Panic
 
 script_workdir = sys.path[0]
-grader_binary = os.path.join(script_workdir, "_build/default/grader/grader.exe")
+grader_binary = os.path.join(
+    script_workdir, "_build/default/grader/grader.exe")
+
 
 class Poller_Coq(Poller):
     def init(self):
@@ -20,7 +22,8 @@ class Poller_Coq(Poller):
         logger = self.logger
         workdir = os.path.join(script_workdir, "grader_workdir")
 
-        logger.debug("Copy Coq files from the submission to {}".format(workdir))
+        logger.debug(
+            "Copy Coq files from the submission to {}".format(workdir))
 
         if os.path.isdir(workdir):
             shutil.rmtree(workdir)
@@ -62,4 +65,11 @@ if __name__ == "__main__":
         if sys.argv[1] == "DEBUG":
             loglevel = logging.DEBUG
 
-    Poller_Coq(loglevel).run()
+    # Initialize logging
+    logging.basicConfig(filename="poller.log",
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%m-%d %H:%M:%S',
+                        level=loglevel)
+
+    Poller_Coq().run()

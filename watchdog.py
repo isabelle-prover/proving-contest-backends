@@ -7,15 +7,8 @@ class Watchdog_Restart(Exception):
 
 
 class Watchdog:
-    def __init__(self, watched, loglevel=logging.INFO):
+    def __init__(self, watched):
         self.watched = watched
-
-        # Initialize logging
-        logging.basicConfig(filename="watchdog.log",
-                            filemode='a',
-                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%m-%d %H:%M:%S',
-                            level=loglevel)
 
         logger = logging.getLogger('watchdog')
 
@@ -35,7 +28,7 @@ class Watchdog:
                 wd = watch_dog.read().strip()
                 is_ready = (wd == "ready")
                 self.logger.info("waiting for poller.watch : %s (%s)" %
-                            (wd, is_ready))
+                                 (wd, is_ready))
                 watch_dog.close()
                 time.sleep(5)
 

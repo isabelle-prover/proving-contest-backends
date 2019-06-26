@@ -190,8 +190,15 @@ if __name__ == "__main__":
         if sys.argv[1] == "DEBUG":
             loglevel = logging.DEBUG
 
-    def poll():
-        Poller_Isa(loglevel).run()
+    # Initialize logging
+    logging.basicConfig(filename="poller.log",
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%m-%d %H:%M:%S',
+                        level=loglevel)
 
-    poller = Watchdog(poll, loglevel)
+    def poll():
+        Poller_Isa().run()
+
+    poller = Watchdog(poll)
     poller.watch()
