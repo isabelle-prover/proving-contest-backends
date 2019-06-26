@@ -184,6 +184,7 @@ if __name__ == "__main__":
         logger.info("Error while connecting to Isabelle/Server")
         sys.exit(CONNECTION_ERROR)
 
+    return_code = UNKNOWN_ERROR
     try:
 
         (cmd, msgdict) = twoway(password, s)
