@@ -189,7 +189,7 @@ if __name__ == "__main__":
         logger.info("Result: %s" % cmd)
         logger.info("Version: %s" % msgdict["isabelle_version"])
 
-        logging.info(
+        logger.info(
             "============== Starting session '%s' =================" % session)
 
         msgbody = {"session": session}
@@ -211,7 +211,7 @@ if __name__ == "__main__":
             return_code = SKIPPED_THEORY
 
         else:
-            logging.info("============== Checking theory =================")
+            logger.info("============== Checking theory =================")
 
             msgbody = {"session_id": session_id, "theories": [checkfile]}
             msg = 'use_theories %s' % json.dumps(msgbody)
@@ -230,27 +230,27 @@ if __name__ == "__main__":
                 msgout = {"msg": msgdict}
 
                 if cmd == "FINISHED":
-                    logging.info("-----------------%s" % msgdict["ok"])
-                    logging.info(type(msgdict["ok"]))
+                    logger.info("-----------------%s" % msgdict["ok"])
+                    logger.info(type(msgdict["ok"]))
                     if msgdict["ok"]:
-                        logging.info("Theory checked successfully")
+                        logger.info("Theory checked successfully")
                         return_code = CHECKING_SUCCESS
                     else:
-                        logging.info("Theory checking finished but not 'ok'")
+                        logger.info("Theory checking finished but not 'ok'")
                         return_code = NOT_OK
                 else:
-                    logging.info("Theory checking failed")
+                    logger.info("Theory checking failed")
 
             except socket.timeout as exc:
-                logging.info("Caught exception socket.timeout : %s" % exc)
-                logging.info("Theory checking failed")
+                logger.info("Caught exception socket.timeout : %s" % exc)
+                logger.info("Theory checking failed")
                 msgout = "Caught exception socket.error : %s" % exc
                 return_code = CHECKING_TIMEOUT
 
             s.settimeout(None)
             print(json.dumps(msgout))
 
-        logging.info(
+        logger.info(
             "============== Stopping session '%s' =================" % session)
 
         msgbody = {"session_id": session_id}
@@ -258,12 +258,12 @@ if __name__ == "__main__":
 
         (cmd, msgdict) = twoway(msg, s)
 
-        logging.debug("Result command: %s" % cmd)
-        logging.debug("Result message: %s" % msgdict)
+        logger.debug("Result command: %s" % cmd)
+        logger.debug("Result message: %s" % msgdict)
 
         (cmd, msgdict) = receive_msg(s, verbose)
 
-        logging.debug(msgdict)
+        logger.debug(msgdict)
 
     except (ParseError, json.JSONDecodeError):
         # Error while parsing message from Isabelle/Server
