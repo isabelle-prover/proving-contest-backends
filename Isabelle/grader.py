@@ -57,13 +57,11 @@ def parse(msg):
 
 
 def send(msg, socket):
-    global logger
     socket.sendall((msg + "\n").encode('utf-8'))
     logger.debug("Sent message via socket")
 
 
 def receive(socket, verbose):
-    global logger
     logger.debug("Starting to receive message")
     data = socket.recv(1024)
     if verbose:
@@ -117,7 +115,6 @@ def receive(socket, verbose):
 
 # Receive a complete message from Isabelle/Server and parse it.
 def receive_msg(socket, verbose):
-    global logger
     buffer = []
     while True:
         if len(buffer) == 0:
@@ -126,18 +123,17 @@ def receive_msg(socket, verbose):
         buffer = buffer[1:]
         (cmd, msgdict) = parse(data)
         if cmd == "NOTE":
-            logging.debug("NOTE %s" % str(msgdict))
+            logger.debug("NOTE %s" % str(msgdict))
         elif cmd == "FINISHED":
-            logging.debug("FINISHED")
+            logger.debug("FINISHED")
             break
         elif cmd == "FAILED":
-            logging.debug("FAILED")
+            logger.debug("FAILED")
             break
     return (cmd, msgdict)
 
 
 def twowayOK(msg, socket):
-    global logger
     send(msg, socket)
     data = receive(socket, True)
 
@@ -151,7 +147,6 @@ def twowayOK(msg, socket):
 
 
 def twoway(msg, socket):
-    global logger
     send(msg, socket)
     data = receive(socket, True)
 
