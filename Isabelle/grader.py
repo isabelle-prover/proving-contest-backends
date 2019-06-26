@@ -3,13 +3,7 @@ import socket
 import json
 import logging
 
-logging.basicConfig(filename="grader.log",
-                    filemode='a',
-                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%m-%d %H:%M:%S',
-                    level=logging.INFO)
-
-logger = logging.getLogger('grader')
+logger = None
 
 # Error codes
 UNKNOWN_ERROR = -1
@@ -169,6 +163,13 @@ if __name__ == "__main__":
     session = sys.argv[2]
     checkfile = sys.argv[3]
     timeout = sys.argv[4]
+
+    logging.basicConfig(filename="grader.log",
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%m-%d %H:%M:%S',
+                        level=logging.INFO)
+    logger = logging.getLogger('grader')
 
     try:
         HOST = '127.0.0.1'    # The remote host
