@@ -5,6 +5,7 @@ import logging
 
 from poller import Poller, Grader_Panic
 from grader import\
+    UNKNOWN_STATUS,\
     UNKNOWN_ERROR,\
     CONNECTION_ERROR,\
     PARSE_ERROR,\
@@ -167,6 +168,24 @@ class Poller_Isa(Poller):
                 result = "1"
             elif return_code == CONNECTION_ERROR:
                 grader_msg = "Internal error: failed to connect to server"
+                result = "0"
+            elif return_code == PARSE_ERROR:
+                grader_msg = "Internal error: failed to parse server reply"
+                result = "0"
+            elif return_code == SOCKET_TIMEOUT:
+                grader_msg = "Internal error: socket timeout while awaiting server reply"
+                result = "0"
+            elif return_code == SOCKET_ERROR:
+                grader_msg = "Internal error: socket error while awaiting server reply"
+                result = "0"
+            elif return_code == PROTOCOL_ERROR:
+                grader_msg = "Internal error: protocol error while awaiting server reply"
+                result = "0"
+            elif return_code == UNKNOWN_ERROR:
+                grader_msg = "Internal error: unknown error"
+                result = "0"
+            elif return_code == UNKNOWN_STATUS:
+                grader_msg = "Internal error: unknown status"
                 result = "0"
             else:
                 # unknown error occurred or wrong
