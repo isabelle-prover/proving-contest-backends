@@ -124,15 +124,19 @@ class Poller_Isa(Poller):
         else:
             # write files into shared folder with Isabelle server
             logger.debug("Write the theory files")
-            for name, content in (("Defs", defs), ("Submission", submission), ("Check", check)):
-                if name == "Defs":
-                    name = "Defs0"
-                    p = content.split("imports", 1)
-                    content = "theory Defs0 imports" + p[1]
-                logger.debug(
-                    "Writing file '{}{}.thy'!".format(grader_path, name))
-                with open("{}{}.thy".format(grader_path, name), 'w') as text_file:
-                    text_file.write(content)
+            try:
+                for name, content in (("Defs", defs), ("Submission", submission), ("Check", check)):
+                    if name == "Defs":
+                        name = "Defs0"
+                        p = content.split("imports", 1)
+                        content = "theory Defs0 imports" + p[1]
+                    logger.debug(
+                        "Writing file '{}{}.thy'!".format(grader_path, name))
+                    with open("{}{}.thy".format(grader_path, name), 'w', encoding='utf-8') as text_file:
+                        text_file.write(content)
+            except Exception as e:
+                return "0", error, ["Internal error: writing theory files failed - (%s)" % e]
+
 
             filename = check_file
 
