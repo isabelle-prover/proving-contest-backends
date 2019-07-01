@@ -116,9 +116,11 @@ class Poller_Isa(Poller):
 
         # Check for illegal keywords in submission
         res = check_for_keywords(submission, allow_sorry)
+        error = None
         if not res["result"]:
             grader_msg = res["message"]
             result = "0"
+            logger.info("Found illegal Key Word!")
         else:
             # write files into shared folder with Isabelle server
             logger.debug("Write the theory files")
@@ -142,7 +144,6 @@ class Poller_Isa(Poller):
 
             return_code = -1
             timedout = True
-            error = None
             process = subprocess.Popen(
                 bashCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             try:
@@ -197,7 +198,7 @@ class Poller_Isa(Poller):
                     "Found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
                 raise Grader_Panic()
 
-            return result, error, [grader_msg]
+        return result, error, [grader_msg]
 
     def tidy(self):
         pass
