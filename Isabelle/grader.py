@@ -244,7 +244,7 @@ if __name__ == "__main__":
             except socket.timeout as exc:
                 logger.info("Caught exception socket.timeout : %s" % exc)
                 logger.info("Theory checking failed")
-                msgout = "Caught exception socket.error : %s" % exc
+                msgout = "A command takes more than %s seconds (%s)" % (timeout, exc)
                 return_code = CHECKING_TIMEOUT
 
             s.settimeout(None)
@@ -274,8 +274,9 @@ if __name__ == "__main__":
         return_code = SOCKET_TIMEOUT
     except (socket.error, SocketBroken):
         return_code = SOCKET_ERROR
-    except Exception:
+    except Exception as e:
         # Catch all
+        logger.error("UNKNOWN_ERROR: %s" % e)
         return_code = UNKNOWN_ERROR
     finally:
         s.close()

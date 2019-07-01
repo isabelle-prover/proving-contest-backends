@@ -160,7 +160,7 @@ class Poller_Isa(Poller):
             if timedout:
                 logger.info("The checking process was killed")
                 return_code = CHECKING_TIMEOUT
-                grader_msg = "The checking process was killed after % s" % timeout_all
+                grader_msg = "Checking theories takes more than %s s." % timeout_all
             else:
                 # get the return message
                 grader_msg = output.decode('utf-8')
