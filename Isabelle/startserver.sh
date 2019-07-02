@@ -37,7 +37,7 @@ if [ "$running" == "0" ]
 	  --private-home=$isabelleversion.tar.gz \
 	  --private-etc=java-8-openjdk,hosts,passwd \
 	  --netns=isabelle-server \
-		bash /var/lib/isabelle-grader/$isabelleversion/startserverscript $isabelleversion 4711) 2>&1) >> server.log &
+		bash /var/lib/isabelle-grader/$isabelleversion/startserverscript $isabelleversion $port) 2>&1) >> server.log &
 	#	 bash -c 'Isabelle2018/bin/isabelle server -n "max" -p 4711'
 	serverPID=$!
 
