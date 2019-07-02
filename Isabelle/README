@@ -7,76 +7,98 @@ ASSUMPTIONS:
 -> python2.7 installed (for grader)
 -> python3.7/3.6 installed (for poller)
 
-[ specify the used python version in the file "pythonversion",
-	default is python3.6 ]
+1) config:
 
-1) files in /var/lib/isabelle-grader/
--> Defs.thy
--> OK_Test.thy
+    We assume a file config (there is a template in config.temp).
+    It should contain a JSON object with the following fields:
+    - "baseurl": the URL to the restapi the server should poll from.
+         e.g. for local testing: "http://127.0.0.1:8000/restapi/"
+    - "token": the token for authentification with the restapi
+    - "port": the port at which isabelle server should listen to
+    - "sessions": a list of sessions that should be prebuilt and stored as
+        heaps for faster checking of theories, e.g. ["Pure", "HOL"]
+    - "ITP": a string containing the Isabelle version, e.g. "Isabelle2019"
+    - "ITPshort": a short string denoting the Isabelle version.
+         ISA for Isabelle 2018, I19 for Isabelle 2019, and counting
+    - "pythonversion": the python version that should be used for the poller
+    - "pwd": the password for connecting to Isabelle server, will be set when
+         starting up the server
+    - "logger-level": the level of messages the logger should write to files.
+         either "INFO", "DEBUG" or "ERROR",
 
-2) network namespace named is setup
--> do this with > sudo ./setupnewnamespace.sh
+2) in the home folder you should have tarballs containing the Isabelle versions
+    you would like to support, e.g. Isabelle2018.tar.gz, Isabelle2019.tar.gz
 
-3) Isabelle2018 is installed in the home folder
+3) in your home folder you should have an extracted version of the Isabelle
+    version you want to use.
 
 4) Firejail is installed
 
-1+2) can be done with
-> ./prepareserver.sh
-(see below)
+5) folders and rights:
+    - /var/lib/isabelle-grader must exist and be readable
+
+==============================================
+HOW TO Prepare the server
+
+0) preparation steps:
+
+- copy config.temp to config
+- add the right "baseurl", "token", "ITP", and so on
+- make sure the Isabelle tarball you want to use is in your home folder,
+    e.g. ~/Isabelle2018 should contain Isabelle 2018
+- /var/lib/isabelle-grader must exist and be writeable
+
+1) sudo ./judge prepare
+
+    start with sudo, as a networknamespace must be generated
+
+    this will happen:
+    - config is read
+    - important files will be copied to /var/lib/isabelle-grader/ISABELLEVERSION
+    - the sessions will be pre built
+    - if Isabelle2018 is used, we pull from the semantics1819 repo and build it
+    - heaps are copied to 
+        /var/lib/isabelle-grader/ISABELLEVERSION/.isabelle/ISABELELVERSION/heaps
+    - a new networknamespace is created for communication with Isabelle server
 
 ==============================================
 HOW TO START THE SERVER (Isabelle Server + Poller)
 
-1)
-put the sessions you need into the file "sessions",
-one session a line. You can find an example in 'sessions.temp'.
+1) start the server 
 
-2) prepare the server 
+> ./judge start 
+   
+    starts the server
+    - first isabelle server is booting up, it will eventually emit a password
+    - then the poller is started (it depends on the password)
 
-> ./judge prepare
-
-this will build session images, place
-Defs and OK_Test into /var/lib/isabelle-grader/,
-as well as heaps and settings for Isabelle.
-
-this may take a while if new images need to be built
-
-3) Copy `config.temp` to `config` and fill in the details
-
-4) start the server
-
-> ./judge start
-
-this will start Isabelle Server and the poller.
-
-
-5) get status of server
+2) get status of server
 
 > ./judge status
 
-6) stop the server
+3) stop the server
 
 > ./judge stop
 
 ==============================================
-HOW TO START THE POLLER (manually)
+LOGGING files to monitor
 
-Start the poller with this command,
-add the PWD!
+1) poller.log
 
-> sudo python3.7 poller.py 
+    stuff the poller emits
+    you can watch the start up and some logging when being in the 
+    polling loop. also results from individual assessments
 
+2) server.log
+      
+    stuff the Isabelle server emits,
+    mainly while start up.
 
-==============================================
-HOW TO START THE GRADER (manually)
+3) grader.log
 
-e.g.:
-sudo ip netns exec isabelle-server python2.7 grader.py "SERVER-PASSWORD" "HOL" "OK_Test" 10.0
+    stuff the grader emits,
 
-
-theory files must be placed in:
-/var/lib/isabelle-grader/
-
-
+4) watchdog.log
+    
+    stuff the watchdog emits
 

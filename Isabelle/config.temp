@@ -1,1 +1,1 @@
-{"pwd": "c7ec9f94-d278-4c90-8181-5ca0e28c0bbc", "logger-level": "DEBUG", "token": "YYY", "baseurl": "http://127.0.0.1:8000/restapi/"}
+{"pwd": "ZZZ", "logger-level": "INFO", "token": "YYY", "baseurl": "http://127.0.0.1:8000/restapi/", "ITPshort": "I19", "pythonversion": "python3.6", "port": 4711, "ITP": "Isabelle2019", "sessions": ["Pure", "HOL"]}

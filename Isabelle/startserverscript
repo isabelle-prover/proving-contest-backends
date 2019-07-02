@@ -1,5 +1,10 @@
 #!/bin/bash
 
+isabelleversion=$1
+port=$2
+
+tar -xzf "$isabelleversion".tar.gz
+
 cp -R /var/lib/isabelle-grader/.isabelle .
 
-Isabelle2018/bin/isabelle server -n "max" -p 4711
+$isabelleversion/bin/isabelle server -n "max" -p $2

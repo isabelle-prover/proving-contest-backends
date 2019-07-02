@@ -1,12 +1,9 @@
 #!/bin/bash
 
 
-if [ -e pythonversion ]
-then
-	pythonversion=`cat pythonversion`
-else
-	pythonversion=python3.6
-fi
+echo "======================================================"
+pythonversion=`cat config | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["pythonversion"];'` 
+echo "pythonversion = $pythonversion"
 
 
 checkPID() {

@@ -154,7 +154,7 @@ def twoway(msg, socket):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         logging.error("Unexpected number of command line arguments. Aborting!")
         sys.exit(-1)
     verbose = False
@@ -163,6 +163,7 @@ if __name__ == "__main__":
     session = sys.argv[2]
     checkfile = sys.argv[3]
     timeout = sys.argv[4]
+    port = int(sys.argv[5])
 
     logging.basicConfig(filename="grader.log",
                         filemode='a',
@@ -173,12 +174,13 @@ if __name__ == "__main__":
 
     try:
         HOST = '127.0.0.1'    # The remote host
-        PORT = 4711           # The same port as used by the server
+        PORT = port        # The same port as used by the server
+        logger.info("PORT: %s" % port)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((HOST, PORT))
         logger.info("Connected to server")
-    except Exception:
-        logger.info("Error while connecting to Isabelle/Server")
+    except Exception as e:
+        logger.info("Error while connecting to Isabelle/Server (%s)" % e)
         sys.exit(CONNECTION_ERROR)
 
     return_code = UNKNOWN_STATUS

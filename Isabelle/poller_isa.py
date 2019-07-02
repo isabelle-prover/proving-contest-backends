@@ -99,19 +99,24 @@ def check_for_keywords(prepared, allow_sorry):
     return {"result": True, "message": ""}
 
 
-raw_bash_command = 'sudo ip netns exec isabelle-server python2.7 grader.py "{0}" "{1}" "{2}" {3}'
-grader_path = "/var/lib/isabelle-grader/"
+raw_bash_command = 'sudo ip netns exec isabelle-server python2.7 grader.py "{0}" "{1}" "{2}" {3} {4}'
+grader_path_template = "/var/lib/isabelle-grader/{0}/"
 
 
 class Poller_Isa(Poller):
 
     def init(self):
         self.password = self.config["pwd"]
-        self.logger.info("pwd {}, token {}".format(self.password, self.token))
-        self.make_pollurl("ISA")
+        self.ITPshort = self.config["ITPshort"] 
+        self.ITP = self.config["ITP"] 
+        self.port = self.config["port"]
+        self.logger.info("pwd {}, token {}, ITP {}, port {}".format(
+            self.password, self.token, self.ITP, self.port))
+        self.make_pollurl(self.ITPshort)
 
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry, check_file):
         global raw_bash_command, grader_path
+        grader_path = grader_path_template.format(self.ITP)
         logger = self.logger
 
         # Check for illegal keywords in submission
@@ -143,7 +148,7 @@ class Poller_Isa(Poller):
             # check the file
             logger.info("-> Check the theories!")
             bashCommand = raw_bash_command.format(
-                self.password, image, grader_path + filename, timeout_socket)
+                self.password, image, grader_path + filename, timeout_socket, self.port)
             logger.info(bashCommand)
 
             return_code = -1

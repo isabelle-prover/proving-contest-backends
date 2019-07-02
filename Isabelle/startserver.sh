@@ -1,11 +1,13 @@
 #!/bin/bash
 
-if [ -e pythonversion ]
-then
-	pythonversion=`cat pythonversion`
-else
-	pythonversion=python3.6
-fi
+echo "======================================================"
+echo "Read config"
+port=`cat config | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["port"];'`
+echo "port = $port"
+isabelleversion=`cat config | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["ITP"];'` 
+echo "isabelleversion = $isabelleversion"
+pythonversion=`cat config | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["pythonversion"];'` 
+echo "pythonversion = $pythonversion"
 
 serverPID=`cat serverPID`
 
@@ -24,30 +26,30 @@ if [ "$running" == "0" ]
 	then
 
 
-	echo "A) Starting server" >> server.log 
+	echo "A) Starting server for $isabelleversion" >> server.log 
 
 	echo "===============" >> server.log 
 	date >> server.log
-	echo "Starting Isabelle server" >> server.log 
+	echo "Starting Isabelle server ($isabelleversion)" >> server.log 
 
 	((firejail \
 	  --profile=isabelle.profile \
-	  --private-home=Isabelle2018 \
+	  --private-home=$isabelleversion.tar.gz \
 	  --private-etc=java-8-openjdk,hosts,passwd \
 	  --netns=isabelle-server \
-		bash /var/lib/isabelle-grader/startserverscript) 2>&1) >> server.log &
+		bash /var/lib/isabelle-grader/$isabelleversion/startserverscript $isabelleversion 4711) 2>&1) >> server.log &
 	#	 bash -c 'Isabelle2018/bin/isabelle server -n "max" -p 4711'
 	serverPID=$!
 
 	echo $serverPID > serverPID
-	echo "started an Isabelle server (PID=$serverPID)"		
+	echo "started an Isabelle server (version=$isabelleversion) (PID=$serverPID)"		
 
 
 
 
 	# update the password
 	echo "B) trying to update the server password in the config (need to wait for the server to start up)"
-	tries=5
+	tries=10
 	pwdupd=0
 	c=1
 	while [ $c -lt $tries ]
