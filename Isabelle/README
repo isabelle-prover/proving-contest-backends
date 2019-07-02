@@ -80,6 +80,28 @@ HOW TO START THE SERVER (Isabelle Server + Poller)
 
 > ./judge stop
 
+
+==============================================
+HOW TO SET UP THE WATCHDOG 
+
+There is a strange error of Isabelle server, ('Timer already cancelled').
+Until we do not know how to fix it we install an watchdog.
+
+When the error occurs, poller.py signals via watchdog.py in the file poller.watch
+that an "error" occured.
+
+watchdog.sh is designed to restart Isabelle server.
+it should be added to the crontab:
+
+crontab -e
+
+add the line
+*/2 * * * * FOLDEROFWATCHDOG/watchdog.sh "{NAME}"
+
+and place FOLDEROFWATCHDOG into ~/.IsabellePoller{NAME}
+
+
+
 ==============================================
 LOGGING files to monitor
 
@@ -98,7 +120,8 @@ LOGGING files to monitor
 
     stuff the grader emits,
 
-4) watchdog.log
+4) /tmp/.watchdog{NAME}
     
     stuff the watchdog emits
+
 

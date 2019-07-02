@@ -1,10 +1,11 @@
 #!/bin/bash
 
-logger="/tmp/.watchdog"
+logger="/tmp/.watchdog$1"
 
 echo "===== Watchdog starts ====" >> $logger
 date >> $logger
-folder=`cat ~/.IsabellePoller`
+
+folder=`cat ~/.IsabellePoller$1`
 
 echo "enter $folder" >> $logger
 cd $folder
