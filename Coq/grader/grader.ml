@@ -31,7 +31,7 @@ let result_of_ans ans =
       | Added _ -> warn "Unexpected Added"; None
       | CoqExn SP.ExnInfo.{ pp; _ } -> Some (Pp.string_of_ppcmds pp)
     ) ans in
-  if List.is_empty error_ans then Ok `NoAxiom
+  if List.is_empty error_ans then Ok ()
   else Error (reduce (fun a b -> a ^ "\n" ^ b) error_ans)
 
 let add_then_exec stmt =
@@ -71,25 +71,40 @@ end
 
 let allowed_axioms : string list ref = ref []
 
-let pp_command ppf (cmd, res) =
-  let with_res ppf p =
-    let pp_ok ppf = function
-      | `NoAxiom -> ()
-      | `Axioms s -> Format.string ppf s
-    in
-    Format.fprintf ppf "@[<v>%t@,@[-->@ %a@]@,@,@]%!"
-      p (Result.pp pp_ok) res in
+let pp_command ppf cmd =
   match cmd with
   | Allow_axioms _ -> ()
   | Check (thmname, stmt) ->
-    with_res ppf (fun ppf ->
-      Format.fprintf ppf "@[Check@ %s:@ %s@]" thmname stmt)
+    Format.fprintf ppf "@[Check@ %s:@ %s@]%!@." thmname stmt
   | Check_refl stmt ->
-    with_res ppf (fun ppf ->
-      Format.fprintf ppf "@[Check_refl@ %s@]" stmt)
+    Format.fprintf ppf "@[Check_refl@ %s@]%!@." stmt
+
+type check_result = [`Ok | `OkWithAxioms | `Error]
+
+type command_result =
+  | Skip
+  | Report_command of {
+      name : string;
+      result : check_result;
+      messages : string list;
+    }
+
+let pp_command_result ppf = function
+  | Skip -> ()
+  | Report_command { name = _; result; messages } ->
+    let res_s = function
+      | `Ok -> "ok" | `Error -> "error"
+      | `OkWithAxioms -> "ok (with axioms)" in
+    let pp_msg ppf = Format.fprintf ppf "%s@," in
+    Format.fprintf ppf "@[<v>--> %s@,%a@,@]%!"
+      (res_s result) (Format.list ~sep:Format.pp_print_cut pp_msg) messages
 
 let check_refl thm =
   add_then_exec ("Goal " ^ thm ^ ". reflexivity. Qed.")
+  |> Pair.map2 (function
+    | Ok () -> Report_command { name = thm; result = `Ok; messages = [] }
+    | Error msg ->
+      Report_command { name = thm; result = `Error; messages = [msg] })
 
 let check_assumptions (a: SA.t) =
   let explain (ax, _, _) =
@@ -109,10 +124,8 @@ let check_assumptions (a: SA.t) =
        else Some (Printf.sprintf "%s: %s" reason a_s)
      ) a.SA.axioms)
   in
-  if List.is_empty errors then Ok `NoAxiom
-  else Ok (`Axioms (
-    reduce (fun a b -> a ^ "\n" ^ b) errors
-  ))
+  if List.is_empty errors then None
+  else Some (reduce (fun a b -> a ^ "\n" ^ b) errors)
 
 let check_thm name stmt =
   let lemma_name = "check" in
@@ -120,17 +133,21 @@ let check_thm name stmt =
     Printf.sprintf "Lemma %s: %s. exact %s. Qed."
       lemma_name stmt name
   in
-  match add_then_exec vernac with
-  | sids, Error e -> sids, Error e
-  | sids, Ok `NoAxiom ->
-    sids, check_assumptions (get_assumptions lemma_name)
+  add_then_exec vernac
+  |> Pair.map2 (function
+    | Error msg -> Report_command { name; result = `Error; messages = [msg] }
+    | Ok () ->
+      match check_assumptions (get_assumptions lemma_name) with
+      | None -> Report_command { name; result = `Ok; messages = [] }
+      | Some assums ->
+        Report_command { name; result = `OkWithAxioms; messages = [assums] })
 
 let run_command (cmd: command) =
   let added_sids, res =
     match cmd with
     | Allow_axioms axs ->
       allowed_axioms := axs @ !allowed_axioms;
-      [], Ok `NoAxiom
+      [], Skip
     | Check_refl thm_statement -> check_refl thm_statement
     | Check (name, stmt) -> check_thm name stmt
   in
@@ -148,9 +165,10 @@ let input_doc ~in_file ~requires =
     let commands = List.map command_of_sexp input_sexps in
     List.iter (fun s -> add_then_exec s |> ignore) requires;
     List.map (fun command ->
+      pp_command Format.std_formatter command;
       let res = run_command command in
-      pp_command Format.std_formatter (command, res);
-      command, res
+      pp_command_result Format.std_formatter res;
+      res
     ) commands |> Result.pure
   with Sexplib.Conv.Of_sexp_error (e, sexp) ->
     Format.eprintf "Invalid check file:\n%s\n%a\n"
@@ -238,15 +256,10 @@ let compile_submission ~timeout workdir =
   | Ok () -> Ok ()
   | Error msg -> Error (`Submission msg)
 
-type check_result =
-  | Ok
-  | Ok_with_axioms
-  | Error
-
 let check_result_to_yojson = function
-  | Ok -> `String "ok"
-  | Ok_with_axioms -> `String "ok_with_axioms"
-  | Error -> `String "error"
+  | `Ok -> `String "ok"
+  | `OkWithAxioms -> `String "ok_with_axioms"
+  | `Error -> `String "error"
 
 type output_check = {
   name : string;
@@ -265,9 +278,8 @@ type output = {
 } [@@deriving to_yojson]
 
 let output_of_result
-    (res:
-       ((command * ([`Axioms of string | `NoAxiom], string) Result.t) list,
-        [`Other of string | `Submission of string]) Result.t)
+    (res: (command_result list,
+           [`Submission of string | `Other of string]) result)
   =
   match res with
   | Error (`Other msg) ->
@@ -277,34 +289,17 @@ let output_of_result
   | Error (`Submission msg) ->
     { submission_is_valid = false;
       checks = [];
-      messages = [{ where = "Submission.v"; what = msg }] }
+      messages = [{ where = submission_f; what = msg }] }
   | Ok checks_res ->
     let checks, messages =
       List.filter_map (function
-        | Allow_axioms _, _ -> None
-        | Check (thm, _stmt), res ->
-          begin match res with
-            | Result.Ok `NoAxiom ->
-              Some ({name = thm; result = Ok}, None)
-            | Ok (`Axioms msg) ->
-              Some ({name = thm; result = Ok_with_axioms},
-                    Some {where = thm; what = msg})
-            | Error msg ->
-              Some ({name = thm; result = Error},
-                    Some {where = thm; what = msg})
-          end
-        | Check_refl stmt, res ->
-          begin match res with
-            | Ok `NoAxiom ->
-              Some ({name = stmt; result = Ok}, None)
-            | Ok (`Axioms _) -> assert false
-            | Error msg ->
-              Some ({name = stmt; result = Error},
-                    Some {where = stmt; what = msg})
-          end
+        | Skip -> None
+        | Report_command { name; result; messages } ->
+          Some ({ name; result },
+                List.map (fun what -> { where = name; what }) messages)
       ) checks_res
       |> List.split
-      |> Pair.map2 (List.filter_map Fun.id)
+      |> Pair.map2 List.flatten
     in
     { submission_is_valid = true; checks; messages }
 
@@ -318,7 +313,7 @@ let driver
     omit_loc omit_att exn_on_opaque
   =
   let open Result in
-  let res = begin
+  write_result ~file:(result_file in_dir) @@ begin
     (* Build the submission *)
     check_submission_dir in_dir >>= fun () ->
     compile_submission ~timeout in_dir >>= fun () ->
@@ -343,8 +338,7 @@ let driver
 
     (* main loop *)
     input_doc ~in_file ~requires
-  end in
-  write_result ~file:(result_file in_dir) res
+  end
 
 let main () =
   let open Cmdliner in
