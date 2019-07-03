@@ -1,5 +1,6 @@
 .merlin
 grader/_build
+grader/workdir/result.json
 poller.log
 pollerPID
 _build

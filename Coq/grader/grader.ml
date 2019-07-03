@@ -31,7 +31,7 @@ let result_of_ans ans =
       | Added _ -> warn "Unexpected Added"; None
       | CoqExn SP.ExnInfo.{ pp; _ } -> Some (Pp.string_of_ppcmds pp)
     ) ans in
-  if List.is_empty error_ans then Ok ()
+  if List.is_empty error_ans then Ok `NoAxiom
   else Error (reduce (fun a b -> a ^ "\n" ^ b) error_ans)
 
 let add_then_exec stmt =
@@ -73,8 +73,12 @@ let allowed_axioms : string list ref = ref []
 
 let pp_command ppf (cmd, res) =
   let with_res ppf p =
-    Format.fprintf ppf "@[<v>%t@,@[-->@ %a@]@,@,@]"
-      p (Result.pp Format.silent) res in
+    let pp_ok ppf = function
+      | `NoAxiom -> ()
+      | `Axioms s -> Format.string ppf s
+    in
+    Format.fprintf ppf "@[<v>%t@,@[-->@ %a@]@,@,@]%!"
+      p (Result.pp pp_ok) res in
   match cmd with
   | Allow_axioms _ -> ()
   | Check (thmname, stmt) ->
@@ -105,10 +109,10 @@ let check_assumptions (a: SA.t) =
        else Some (Printf.sprintf "%s: %s" reason a_s)
      ) a.SA.axioms)
   in
-  if List.is_empty errors then Ok ()
-  else Error (
+  if List.is_empty errors then Ok `NoAxiom
+  else Ok (`Axioms (
     reduce (fun a b -> a ^ "\n" ^ b) errors
-  )
+  ))
 
 let check_thm name stmt =
   let lemma_name = "check" in
@@ -118,7 +122,7 @@ let check_thm name stmt =
   in
   match add_then_exec vernac with
   | sids, Error e -> sids, Error e
-  | sids, Ok () ->
+  | sids, Ok `NoAxiom ->
     sids, check_assumptions (get_assumptions lemma_name)
 
 let run_command (cmd: command) =
@@ -126,7 +130,7 @@ let run_command (cmd: command) =
     match cmd with
     | Allow_axioms axs ->
       allowed_axioms := axs @ !allowed_axioms;
-      [], Ok ()
+      [], Ok `NoAxiom
     | Check_refl thm_statement -> check_refl thm_statement
     | Check (name, stmt) -> check_thm name stmt
   in
@@ -140,21 +144,19 @@ let input_doc ~in_file ~requires =
     close_in cin;
     s
   in
-  let had_errors = ref false in
   try
     let commands = List.map command_of_sexp input_sexps in
     List.iter (fun s -> add_then_exec s |> ignore) requires;
-    List.iter (fun command ->
+    List.map (fun command ->
       let res = run_command command in
-      (match res with Error _ -> had_errors := true | Ok () -> ());
       pp_command Format.std_formatter (command, res);
-    ) commands;
-    if !had_errors then Error () else Ok ()
+      command, res
+    ) commands |> Result.pure
   with Sexplib.Conv.Of_sexp_error (e, sexp) ->
     Format.eprintf "Invalid check file:\n%s\n%a\n"
       (Printexc.to_string e)
       Sexplib.Sexp.pp_hum sexp;
-    Error ()
+    Error (`Other "Unexpected issue with the checks file. Please report.")
 
 (***************)
 
@@ -164,9 +166,11 @@ let submission_base = "Submission"
 let defs_f = defs_base ^ ".v"
 let submission_f = submission_base ^ ".v"
 let checks_f = "checks.sexp"
+let result_f = "result.json"
 let defs dir = dir ^/ defs_f
 let submission dir = dir ^/ submission_f
 let checks dir = dir ^/ checks_f
+let result_file dir = dir ^/ result_f
 
 let toplevel_namespace = "Top"
 
@@ -192,10 +196,10 @@ let check_submission_dir dir =
   && Sys.file_exists (defs dir)
   && Sys.file_exists (submission dir)
   && Sys.file_exists (checks dir)
-  then ()
+  then Ok ()
   else (
-    Printf.printf "Incorrect submission directory\n";
-    exit 1
+    Printf.eprintf "Incorrect submission directory\n";
+    Error (`Other "Unexpected error: incorrect submission directory. Please report.")
   )
 
 let spawn ~workdir (cmd: string) =
@@ -221,7 +225,8 @@ let spawn_lwt ~timeout ~timeout_err ~workdir cmd =
 let compile_submission ~timeout workdir =
   let open Lwt_result.Infix in
   let compile f =
-    spawn_lwt ~workdir ~timeout ~timeout_err:("Timeout: " ^ f)
+    spawn_lwt ~workdir ~timeout
+      ~timeout_err:(Printf.sprintf "Timeout after %ds: %s" timeout f)
       (Printf.sprintf "coqc -R . %s '%s'" toplevel_namespace f) >>= function
     | Lwt_unix.WEXITED 0 -> Lwt_result.return ()
     | _ -> Lwt_result.fail ("Non-zero exit code when compiling " ^ f)
@@ -230,37 +235,116 @@ let compile_submission ~timeout workdir =
     compile defs_f >>= fun () ->
     compile submission_f
   end |> function
-  | Ok () -> ()
-  | Error msg -> Printf.printf "%s\n" msg; exit 1
+  | Ok () -> Ok ()
+  | Error msg -> Error (`Submission msg)
+
+type check_result =
+  | Ok
+  | Ok_with_axioms
+  | Error
+
+let check_result_to_yojson = function
+  | Ok -> `String "ok"
+  | Ok_with_axioms -> `String "ok_with_axioms"
+  | Error -> `String "error"
+
+type output_check = {
+  name : string;
+  result : check_result;
+} [@@deriving to_yojson]
+
+type output_message = {
+  where : string;
+  what : string;
+} [@@deriving to_yojson]
+
+type output = {
+  submission_is_valid : bool;
+  checks : output_check list;
+  messages : output_message list;
+} [@@deriving to_yojson]
+
+let output_of_result
+    (res:
+       ((command * ([`Axioms of string | `NoAxiom], string) Result.t) list,
+        [`Other of string | `Submission of string]) Result.t)
+  =
+  match res with
+  | Error (`Other msg) ->
+    { submission_is_valid = false;
+      checks = [];
+      messages = [{ where = "global"; what = msg }] }
+  | Error (`Submission msg) ->
+    { submission_is_valid = false;
+      checks = [];
+      messages = [{ where = "Submission.v"; what = msg }] }
+  | Ok checks_res ->
+    let checks, messages =
+      List.filter_map (function
+        | Allow_axioms _, _ -> None
+        | Check (thm, _stmt), res ->
+          begin match res with
+            | Result.Ok `NoAxiom ->
+              Some ({name = thm; result = Ok}, None)
+            | Ok (`Axioms msg) ->
+              Some ({name = thm; result = Ok_with_axioms},
+                    Some {where = thm; what = msg})
+            | Error msg ->
+              Some ({name = thm; result = Error},
+                    Some {where = thm; what = msg})
+          end
+        | Check_refl stmt, res ->
+          begin match res with
+            | Ok `NoAxiom ->
+              Some ({name = stmt; result = Ok}, None)
+            | Ok (`Axioms _) -> assert false
+            | Error msg ->
+              Some ({name = stmt; result = Error},
+                    Some {where = stmt; what = msg})
+          end
+      ) checks_res
+      |> List.split
+      |> Pair.map2 (List.filter_map Fun.id)
+    in
+    { submission_is_valid = true; checks; messages }
+
+let write_result ~file res =
+  output_of_result res
+  |> output_to_yojson
+  |> Yojson.Safe.to_file file
 
 let driver
     timeout debug coq_path ml_path load_path rload_path in_dir
     omit_loc omit_att exn_on_opaque
   =
-  (* Build the submission *)
-  check_submission_dir in_dir;
-  compile_submission ~timeout in_dir;
-  let in_file = checks in_dir in
+  let open Result in
+  let res = begin
+    (* Build the submission *)
+    check_submission_dir in_dir >>= fun () ->
+    compile_submission ~timeout in_dir >>= fun () ->
+    let in_file = checks in_dir in
 
-  (* Requires for the check file document *)
-  let requires = [
-    Printf.sprintf "Require Import %s." defs_base;
-    Printf.sprintf "Require %s." submission_base;
-  ] in
+    (* Requires for the check file document *)
+    let requires = [
+      Printf.sprintf "Require Import %s." defs_base;
+      Printf.sprintf "Require %s." submission_base;
+    ] in
 
-  (* initialization *)
-  let options = Serlib.Serlib_init.{ omit_loc; omit_att; exn_on_opaque } in
-  Serlib.Serlib_init.init ~options;
+    (* initialization *)
+    let options = Serlib.Serlib_init.{ omit_loc; omit_att; exn_on_opaque } in
+    Serlib.Serlib_init.init ~options;
 
-  let rload_path =
-    (coq_lp_conv ~implicit:true (in_dir, toplevel_namespace)) :: rload_path in
-  let iload_path =
-    Serapi_paths.coq_loadpath_default ~implicit:true ~coq_path
-    @ ml_path @ load_path @ rload_path in
-  let _doc, _sid = create_document ~in_file ~iload_path ~debug in
+    let rload_path =
+      (coq_lp_conv ~implicit:true (in_dir, toplevel_namespace)) :: rload_path in
+    let iload_path =
+      Serapi_paths.coq_loadpath_default ~implicit:true ~coq_path
+      @ ml_path @ load_path @ rload_path in
+    let _doc, _sid = create_document ~in_file ~iload_path ~debug in
 
-  (* main loop *)
-  input_doc ~in_file ~requires
+    (* main loop *)
+    input_doc ~in_file ~requires
+  end in
+  write_result ~file:(result_file in_dir) res
 
 let main () =
   let open Cmdliner in
@@ -285,8 +369,8 @@ let main () =
   in
 
   try match Term.eval ~catch:false main_cmd with
-    | `Version | `Help | `Ok (Ok ()) -> exit 0
-    | `Error _ | `Ok (Error ()) -> exit 1
+    | `Version | `Help | `Ok () -> exit 0
+    | `Error _ -> exit 1
   with exn ->
     let (e, info) = CErrors.push exn in
     fatal_exn e info
