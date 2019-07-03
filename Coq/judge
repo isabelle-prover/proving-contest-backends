@@ -16,6 +16,10 @@ checkPID() {
     echo $running
 }
 
+if [ ! -f pollerPID ]; then
+    echo "-1" > pollerPID
+fi
+
 pollerPID=`checkPID pollerPID`
 
 if [ "$1" == "status" ]; then

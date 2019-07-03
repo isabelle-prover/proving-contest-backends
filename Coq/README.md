@@ -44,4 +44,9 @@ that are either:
   qualified.
 
 
+**NB**: The syntax of strings in s-expressions follow the OCaml conventions. In
+particular, this means that characters such as `\` or `"` must be properly
+escaped (as `\\` and `\"`).
+
+
 For some simple examples, see [grader/workdir](grader/workdir).
