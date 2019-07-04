@@ -5,6 +5,7 @@ import codecs
 import subprocess
 import os
 import shutil
+import json
 
 from poller import Poller, Grader_Panic
 
@@ -40,20 +41,35 @@ class Poller_Coq(Poller):
 
         process = subprocess.Popen(
             [grader_binary, "--timeout={}".format(timeout_all), workdir],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            stdout=subprocess.PIPE, text=True
         )
-        output, error = process.communicate()
+        output, err = process.communicate()
         returncode = process.returncode
 
         output_str = "" if output is None else str(output)
-        if returncode == 0:
-            grader_msg = "OK\n" + output_str
-            result = "1"
-        else:
-            grader_msg = "There was an error or some checks failed:\n" + output_str
-            result = "0"
+        result_file = os.path.join(script_workdir, "result.json")
 
-        return result, error, [grader_msg]
+        if os.path.isfile(result_file):
+            with open(result_file, 'r') as f:
+                summary = json.load(f)
+            summary['log'] = output_str
+            if returncode != 0:
+                summary['submission_is_valid'] = False
+                summary['messages'].append(
+                    {'where': 'global',
+                     'what': 'Grader returned with a nonzero code. Please report.'}
+                )
+        else:
+            summary = {'submission_is_valid': False,
+                       'checks': [],
+                       'messages': [
+                           {'where': 'global',
+                            'what': 'result.json not found. Please report.'}
+                       ],
+                       'log': output_str
+            }
+
+        return summary
 
     def tidy(self):
         pass
