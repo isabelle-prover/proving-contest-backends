@@ -108,8 +108,8 @@ def make_grader_msg(where, what):
     return [ { "where": where, "what": what } ]
 
 def make_summary(result, grader_msg, grader_checks):
-    resultDict = { "result": result, "messages": grader_msg, "checks": grader_checks }
-    return [json.dumps(resultDict)]
+    return { "result": result, "messages": grader_msg, "checks": grader_checks }
+      
 
 class Poller_Isa(Poller):
 

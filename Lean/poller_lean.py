@@ -13,6 +13,12 @@ lean_compile_and_check = ["./grader.sh"]
 axiom_re = re.compile("axiom ([^ ]*) .*")
 
 
+def make_grader_msg(where, what):
+    return [ { "where": where, "what": what } ]
+
+def make_summary(result, grader_msg, grader_checks):
+    return { "result": result, "messages": grader_msg, "checks": grader_checks }
+      
 class Poller_Lean(Poller):
 
     def init(self):
@@ -42,23 +48,25 @@ class Poller_Lean(Poller):
         except subprocess.TimeoutExpired:
             timedout = True
 
+        grader_msg = []
+
         if returncode == 4:
             # successfully checked
-            grader_msg = "OK"
+            #grader_msg =  "OK"
             result = "1"
         else:
             # error occurred or wrong, compose some grader message
             if timedout:
-                grader_msg = "Lean Checking timed out (outer)"
+                grader_msg += make_grader_msg("General", "Lean Checking timed out (outer)")
             elif returncode == 5:
-                grader_msg = "Compiling failed, message =\n{}".format(
-                    "" if output is None else str(output))
+                grader_msg += make_grader_msg("General", "Compiling failed, message =\n{}".format(
+                    "" if output is None else str(output)))
             else:
-                grader_msg = "Something went wrong. Here is some output\n{}".format(
-                    "" if output is None else str(output))
+                grader_msg += make_grader_msg("General", "Something went wrong. Here is some output\n{}".format(
+                    "" if output is None else str(output)))
             result = "0"
 
-        return result, error, [grader_msg]
+        return result, error, make_summary(result, grader_msg, grader_checks)
 
     def tidy(self):
         pass
