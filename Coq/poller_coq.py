@@ -47,7 +47,7 @@ class Poller_Coq(Poller):
         returncode = process.returncode
 
         output_str = "" if output is None else str(output)
-        result_file = os.path.join(script_workdir, "result.json")
+        result_file = os.path.join(workdir, "result.json")
 
         if os.path.isfile(result_file):
             with open(result_file, 'r') as f:
