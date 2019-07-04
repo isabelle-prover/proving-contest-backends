@@ -92,7 +92,7 @@ class Poller(ABC):
         logger = self.logger
         logger.info("entering the polling loop")
         while True:
-            time.sleep(5)
+            time.sleep(0)
             grader_msg = ""
 
             # poll from server
