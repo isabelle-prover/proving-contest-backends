@@ -2,6 +2,7 @@ import sys
 import subprocess
 import re
 import logging
+import json
 
 from poller import Poller, Grader_Panic
 from grader import\
@@ -103,6 +104,13 @@ raw_bash_command = 'sudo ip netns exec isabelle-server python2.7 grader.py "{0}"
 grader_path_template = "/var/lib/isabelle-grader/{0}/"
 
 
+def make_grader_msg(where, what):
+    return [ { "where": where, "what": what } ]
+
+def make_summary(result, grader_msg, grader_checks):
+    resultDict = { "result": result, "messages": grader_msg, "checks": grader_checks }
+    return [json.dumps(resultDict)]
+
 class Poller_Isa(Poller):
 
     def init(self):
@@ -114,6 +122,8 @@ class Poller_Isa(Poller):
             self.password, self.token, self.ITP, self.port))
         self.make_pollurl(self.ITPshort)
 
+
+
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry, check_file):
         global raw_bash_command, grader_path
         grader_path = grader_path_template.format(self.ITP)
@@ -122,8 +132,11 @@ class Poller_Isa(Poller):
         # Check for illegal keywords in submission
         res = check_for_keywords(submission, allow_sorry)
         error = None
+        grader_msg = []
+        grader_checks = []
+
         if not res["result"]:
-            grader_msg = res["message"]
+            grader_msg += make_grader_msg("General", res["message"])
             result = "0"
             logger.info("Found illegal Key Word!")
         else:
@@ -140,7 +153,10 @@ class Poller_Isa(Poller):
                     with open("{}{}.thy".format(grader_path, name), 'w', encoding='utf-8') as text_file:
                         text_file.write(content)
             except Exception as e:
-                return "0", error, ["Internal error: writing theory files failed - (%s)" % e]
+                return "0", error, make_summary("",
+                                                make_grader_msg("Internal error",
+                                                     "writing theory files failed - (%s)" % e),
+                                                [])
 
 
             filename = check_file
@@ -165,10 +181,39 @@ class Poller_Isa(Poller):
             if timedout:
                 logger.info("The checking process was killed")
                 return_code = CHECKING_TIMEOUT
-                grader_msg = "Checking theories takes more than %s s." % timeout_all
+                grader_msg += make_grader_msg("General", "Checking theories takes more than %s s." % timeout_all)
             else:
                 # get the return message
-                grader_msg = output.decode('utf-8')
+                returnmessage = output.decode('utf-8')            
+                if "Timer already cancelled" in returnmessage:
+                    # signal error
+                    logger.info(
+                        "Found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
+                    raise Grader_Panic()
+                # parse Isabelle Server's output
+                try:
+                    msgdict = json.loads(returnmessage)
+                    if msgdict['msg'] and isinstance(msgdict['msg'], dict):
+                        # seems to be an valid output by Isabelle Server 
+                        if 'kind' in msgdict['msg'] and msgdict['msg']['kind'] == "error":
+                            # we have an general error here
+                            grader_msg += make_grader_msg("General", "An error occured while processing checking the Theories: (%s)" % msgdict['msg']['message']) 
+                        elif 'nodes' in msgdict['msg']:
+                            # we have results for specific theories, go through ...
+                            for node in (msgdict['msg']['nodes']):
+                                # ... each theory and ...
+                                for message in node['messages']:
+                                    # ... each message
+                                    if message['kind'] == "error":
+                                        grader_msg += make_grader_msg(node['theory_name'], message["message"])
+                                    if message['message'].startswith("grading"):
+                                        lines = message['message'].split("\n")[1:]
+                                        splitlines = [ line.split(":") for line in lines ]
+                                        grader_checks += [ {"name": line[0], "result": line[1] } for line in splitlines ]
+                            
+                except Exception as e:
+                    grader_msg += make_grader_msg("Internal error", "An error occured while processing Isabelle Server's output (%s)" % e)
+                    grader_checks = [ { "name": "lemma1", "result": "ok" } ]
 
             logger.info("-> Checking is done")
             logger.info("Return code is: %d" % return_code)
@@ -177,37 +222,33 @@ class Poller_Isa(Poller):
                 # successfully checked
                 result = "1"
             elif return_code == CONNECTION_ERROR:
-                grader_msg = "Internal error: failed to connect to server"
+                grader_msg += make_grader_msg("Internal error", "failed to connect to server")
                 result = "0"
             elif return_code == PARSE_ERROR:
-                grader_msg = "Internal error: failed to parse server reply"
+                grader_msg += make_grader_msg("Internal error", "failed to parse server reply")
                 result = "0"
             elif return_code == SOCKET_TIMEOUT:
-                grader_msg = "Internal error: socket timeout while awaiting server reply"
+                grader_msg += make_grader_msg("Internal error", "socket timeout while awaiting server reply")
                 result = "0"
             elif return_code == SOCKET_ERROR:
-                grader_msg = "Internal error: socket error while awaiting server reply"
+                grader_msg += make_grader_msg("Internal error", "socket error while awaiting server reply")
                 result = "0"
             elif return_code == PROTOCOL_ERROR:
-                grader_msg = "Internal error: protocol error while awaiting server reply"
+                grader_msg += make_grader_msg("Internal error", "protocol error while awaiting server reply")
                 result = "0"
             elif return_code == UNKNOWN_ERROR:
-                grader_msg = "Internal error: unknown error"
+                grader_msg += make_grader_msg("Internal error", "unknown error")
                 result = "0"
             elif return_code == UNKNOWN_STATUS:
-                grader_msg = "Internal error: unknown status"
+                grader_msg += make_grader_msg("Internal error" "unknown status")
                 result = "0"
             else:
                 # unknown error occurred or wrong
                 result = "0"
 
-            if "Timer already cancelled" in grader_msg:
-                # signal error
-                logger.info(
-                    "Found error 'Timer already cancelled', signal error to watch-dog, and let it restart the Isabelle server")
-                raise Grader_Panic()
 
-        return result, error, [grader_msg]
+        
+        return result, error, make_summary(result, grader_msg, grader_checks)
 
     def tidy(self):
         pass
