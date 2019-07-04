@@ -17,7 +17,7 @@ def make_grader_msg(where, what):
     return [ { "where": where, "what": what } ]
 
 def make_summary(result, grader_msg, grader_checks, log):
-    return { "result": result, "messages": grader_msg, "checks": grader_checks, "log": log}
+    return { "submission_is_valid": result, "messages": grader_msg, "checks": grader_checks, "log": log}
       
 class Poller_Lean(Poller):
 
@@ -53,7 +53,7 @@ class Poller_Lean(Poller):
         if returncode == 4:
             # successfully checked
             #grader_msg =  "OK"
-            result = "1"
+            result = True
         else:
             # error occurred or wrong, compose some grader message
             if timedout:
@@ -64,7 +64,7 @@ class Poller_Lean(Poller):
             else:
                 grader_msg += make_grader_msg("General", "Something went wrong. Here is some output\n{}".format(
                     "" if output is None else str(output)))
-            result = "0"
+            result = False
 
         return make_summary(result, grader_msg, grader_checks, str(error))
 

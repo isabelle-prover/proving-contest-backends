@@ -108,7 +108,7 @@ def make_grader_msg(where, what):
     return [ { "where": where, "what": what } ]
 
 def make_summary(result, grader_msg, grader_checks, log):
-    return { "result": result, "messages": grader_msg, "checks": grader_checks, "log": log}
+    return { "submission_is_valid": result, "messages": grader_msg, "checks": grader_checks, "log": log}
       
 
 class Poller_Isa(Poller):
@@ -137,7 +137,7 @@ class Poller_Isa(Poller):
 
         if not res["result"]:
             grader_msg += make_grader_msg("General", res["message"])
-            result = "0"
+            result = False
             logger.info("Found illegal Key Word!")
         else:
             # write files into shared folder with Isabelle server
@@ -153,7 +153,7 @@ class Poller_Isa(Poller):
                     with open("{}{}.thy".format(grader_path, name), 'w', encoding='utf-8') as text_file:
                         text_file.write(content)
             except Exception as e:
-                return "0", make_summary("",
+                return make_summary(False,
                                                 make_grader_msg("Internal error",
                                                      "writing theory files failed - (%s)" % e),
                                                 [], error)
@@ -210,42 +210,47 @@ class Poller_Isa(Poller):
                                     if message['message'].startswith("grading"):
                                         lines = message['message'].split("\n")[1:]
                                         splitlines = [ line.split(":") for line in lines ]
-                                        grader_checks += [ {"name": line[0], "result": line[1] } for line in splitlines ]
+                                        for line in splitlines:
+                                            res = "error"
+                                            if line[1] == "passed":
+                                                res = "ok"
+                                            elif line[1] == "failed":
+                                                res = "ok_with_axioms"
+                                            grader_checks += [ {"name": line[0], "result": res } ]
                             
                 except Exception as e:
                     grader_msg += make_grader_msg("Internal error", "An error occured while processing Isabelle Server's output (%s)" % e)
-                    grader_checks = [ { "name": "lemma1", "result": "ok" } ]
 
             logger.info("-> Checking is done")
             logger.info("Return code is: %d" % return_code)
 
             if return_code == 4:
                 # successfully checked
-                result = "1"
+                result = True
             elif return_code == CONNECTION_ERROR:
                 grader_msg += make_grader_msg("Internal error", "failed to connect to server")
-                result = "0"
+                result = False
             elif return_code == PARSE_ERROR:
                 grader_msg += make_grader_msg("Internal error", "failed to parse server reply")
-                result = "0"
+                result = False
             elif return_code == SOCKET_TIMEOUT:
                 grader_msg += make_grader_msg("Internal error", "socket timeout while awaiting server reply")
-                result = "0"
+                result = False
             elif return_code == SOCKET_ERROR:
                 grader_msg += make_grader_msg("Internal error", "socket error while awaiting server reply")
-                result = "0"
+                result = False
             elif return_code == PROTOCOL_ERROR:
                 grader_msg += make_grader_msg("Internal error", "protocol error while awaiting server reply")
-                result = "0"
+                result = False
             elif return_code == UNKNOWN_ERROR:
                 grader_msg += make_grader_msg("Internal error", "unknown error")
-                result = "0"
+                result = False
             elif return_code == UNKNOWN_STATUS:
                 grader_msg += make_grader_msg("Internal error" "unknown status")
-                result = "0"
+                result = False
             else:
                 # unknown error occurred or wrong
-                result = "0"
+                result = False
 
 
         

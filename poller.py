@@ -70,12 +70,12 @@ class Poller(ABC):
     #   Name of file to check:  check_file     (optional)
     # Returns: summary
     #   summary: a dictionary of the form 
-    #       { "result": result,
+    #       { "submission_is_valid": boolean,
     #         "checks": [ check1, ...],
     #         "messages": [ msg1, ...],
     #         "log": log }
     #   where
-    #       result: the score (integer 0..1 as a string) or None
+    #       submission_is_valid: boolean, True iff no error occured during proof checking
     #       checks: list of check items, where a check item is a dictionary { "name": X, "result": Y } 
     #       log:  some log messages of the judge
     #       messages:  list of info messages, where a message is a dictionary { "where": X, "what": Y }
@@ -140,7 +140,7 @@ class Poller(ABC):
                         raise Watchdog_Restart()
 
                     data = json.dumps(
-                        {'result': summary['result'], 'sID': submission_id, 'aID': assessment_id, 'msg': json.dumps(summary)})
+                        {'submission_is_valid': summary['submission_is_valid'], 'sID': submission_id, 'aID': assessment_id, 'msg': json.dumps(summary)})
 
                     logger.debug("put the result back to the server")
                     response = requests.post(
