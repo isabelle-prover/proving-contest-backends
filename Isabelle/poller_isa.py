@@ -107,8 +107,8 @@ grader_path_template = "/var/lib/isabelle-grader/{0}/"
 def make_grader_msg(where, what):
     return [ { "where": where, "what": what } ]
 
-def make_summary(result, grader_msg, grader_checks):
-    return { "result": result, "messages": grader_msg, "checks": grader_checks }
+def make_summary(result, grader_msg, grader_checks, log):
+    return { "result": result, "messages": grader_msg, "checks": grader_checks, "log": log}
       
 
 class Poller_Isa(Poller):
@@ -153,10 +153,10 @@ class Poller_Isa(Poller):
                     with open("{}{}.thy".format(grader_path, name), 'w', encoding='utf-8') as text_file:
                         text_file.write(content)
             except Exception as e:
-                return "0", error, make_summary("",
+                return "0", make_summary("",
                                                 make_grader_msg("Internal error",
                                                      "writing theory files failed - (%s)" % e),
-                                                [])
+                                                [], error)
 
 
             filename = check_file
@@ -248,7 +248,7 @@ class Poller_Isa(Poller):
 
 
         
-        return result, error, make_summary(result, grader_msg, grader_checks)
+        return result, make_summary(result, grader_msg, grader_checks, str(error))
 
     def tidy(self):
         pass

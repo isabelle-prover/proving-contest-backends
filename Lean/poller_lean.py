@@ -16,8 +16,8 @@ axiom_re = re.compile("axiom ([^ ]*) .*")
 def make_grader_msg(where, what):
     return [ { "where": where, "what": what } ]
 
-def make_summary(result, grader_msg, grader_checks):
-    return { "result": result, "messages": grader_msg, "checks": grader_checks }
+def make_summary(result, grader_msg, grader_checks, log):
+    return { "result": result, "messages": grader_msg, "checks": grader_checks, "log": log}
       
 class Poller_Lean(Poller):
 
@@ -66,7 +66,7 @@ class Poller_Lean(Poller):
                     "" if output is None else str(output)))
             result = "0"
 
-        return result, error, make_summary(result, grader_msg, grader_checks)
+        return result, make_summary(result, grader_msg, grader_checks, str(error))
 
     def tidy(self):
         pass

@@ -124,7 +124,7 @@ class Poller(ABC):
                     allow_sorry = data["allow_sorry"]
 
                     try:
-                        result, error, summary = self.grade_submission(submission_id, assessment_id, data["files"]["Defs"], data[
+                        result, summary = self.grade_submission(submission_id, assessment_id, data["files"]["Defs"], data[
                             "files"]["Submission"], data["files"]["Check"], data["image"], data["version"], data["timeout_socket"],
                             data["timeout_all"], data["allow_sorry"], data["checkfile"] if "checkfile" in data else None)
                     # In case the grader signals that the watchdog should restart the whole thing.
