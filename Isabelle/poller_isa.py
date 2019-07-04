@@ -173,6 +173,7 @@ class Poller_Isa(Poller):
                 bashCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             try:
                 output, error = process.communicate(timeout=timeout_all)
+                error = error.decode('utf-8') 
                 timedout = False
                 return_code = process.returncode
             except subprocess.TimeoutExpired:
@@ -248,7 +249,7 @@ class Poller_Isa(Poller):
 
 
         
-        return result, make_summary(result, grader_msg, grader_checks, str(error))
+        return make_summary(result, grader_msg, grader_checks, str(error))
 
     def tidy(self):
         pass

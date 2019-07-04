@@ -66,7 +66,7 @@ class Poller_Lean(Poller):
                     "" if output is None else str(output)))
             result = "0"
 
-        return result, make_summary(result, grader_msg, grader_checks, str(error))
+        return make_summary(result, grader_msg, grader_checks, str(error))
 
     def tidy(self):
         pass

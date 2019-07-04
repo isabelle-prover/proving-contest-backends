@@ -68,10 +68,17 @@ class Poller(ABC):
     #   timeout_all:
     #   Sorry allowed?:         allow_sorry    (optional)
     #   Name of file to check:  check_file     (optional)
-    # Returns: (result, error, items)
-    #   result: the score (integer 0..1 as a string) or None
-    #   error:  error message or None
-    #   items:  list of info messages
+    # Returns: summary
+    #   summary: a dictionary of the form 
+    #       { "result": result,
+    #         "checks": [ check1, ...],
+    #         "messages": [ msg1, ...],
+    #         "log": log }
+    #   where
+    #       result: the score (integer 0..1 as a string) or None
+    #       checks: list of check items, where a check item is a dictionary { "name": X, "result": Y } 
+    #       log:  some log messages of the judge
+    #       messages:  list of info messages, where a message is a dictionary { "where": X, "what": Y }
     @abstractmethod
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version, timeout_socket, timeout_all, allow_sorry=None, check_file=None):
         pass
@@ -124,7 +131,7 @@ class Poller(ABC):
                     allow_sorry = data["allow_sorry"]
 
                     try:
-                        result, summary = self.grade_submission(submission_id, assessment_id, data["files"]["Defs"], data[
+                        summary = self.grade_submission(submission_id, assessment_id, data["files"]["Defs"], data[
                             "files"]["Submission"], data["files"]["Check"], data["image"], data["version"], data["timeout_socket"],
                             data["timeout_all"], data["allow_sorry"], data["checkfile"] if "checkfile" in data else None)
                     # In case the grader signals that the watchdog should restart the whole thing.
@@ -133,7 +140,7 @@ class Poller(ABC):
                         raise Watchdog_Restart()
 
                     data = json.dumps(
-                        {'result': result, 'sID': submission_id, 'aID': assessment_id, 'msg': json.dumps(summary)})
+                        {'result': summary['result'], 'sID': submission_id, 'aID': assessment_id, 'msg': json.dumps(summary)})
 
                     logger.debug("put the result back to the server")
                     response = requests.post(
