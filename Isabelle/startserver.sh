@@ -49,7 +49,7 @@ if [ "$running" == "0" ]
 
 	# update the password
 	echo "B) trying to update the server password in the config (need to wait for the server to start up)"
-	tries=10
+	tries=30
 	pwdupd=0
 	c=1
 	while [ $c -lt $tries ]
