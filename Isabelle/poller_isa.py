@@ -22,6 +22,8 @@ CHECKING_TIMEOUT = 8
 # (keyword, is_surrounded_by_whitespace)
 ILLEGAL_KEYWORDS = [
     ("axiomatization", True),
+    ("instance", True),
+    ("instantiation", True),
     ("overloading", True),
     ("code_printing", True),
     # XXX Can remove after checking in ML
@@ -33,8 +35,6 @@ ILLEGAL_KEYWORDS = [
     ("judgement", False),
     ("method_setup", False),
     ("simproc_setup", False),
-    ("instance", False),
-    ("instantiation", False),
     ("SML_export", False),
     ("SML_import", False),
     ("SML_file", False),
