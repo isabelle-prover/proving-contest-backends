@@ -162,6 +162,9 @@ class Poller(ABC):
                         response.raise_for_status()
                     except requests.HTTPError as e:
                         logger.debug(e)
+            except Watchdog_Restart as e:
+                logger.info("pass on a watchdog_restart")
+                raise e
             except Exception as e:
                 logger.info("An error occured, just try again! (%s)" % e)
                 
