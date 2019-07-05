@@ -33,6 +33,8 @@ ILLEGAL_KEYWORDS = [
     ("judgement", False),
     ("method_setup", False),
     ("simproc_setup", False),
+    ("instance", False),
+    ("instantiation", False),
     ("SML_export", False),
     ("SML_import", False),
     ("SML_file", False),
