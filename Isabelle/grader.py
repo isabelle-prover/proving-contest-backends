@@ -246,7 +246,7 @@ if __name__ == "__main__":
             except socket.timeout as exc:
                 logger.info("Caught exception socket.timeout : %s" % exc)
                 logger.info("Theory checking failed")
-                msgout = "A command takes more than %s seconds (%s)" % (timeout, exc)
+                msgout = {"msg": {"kind": "error", "message": "A command takes more than %s seconds (%s)" % (timeout, exc)} }
                 return_code = CHECKING_TIMEOUT
 
             s.settimeout(None)
