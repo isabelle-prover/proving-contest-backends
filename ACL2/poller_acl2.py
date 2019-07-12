@@ -59,17 +59,17 @@ class Poller_Lean(Poller):
 
         grader_msg += make_grader_msg("General-output", str(output))
 
-        if returncode == 4:
+        if returncode == 0:
             # successfully checked
-            #grader_msg =  "OK"
+            grader_msg += make_grader_msg("General", "ACL2 Checking succeed")
             result = True
         else:
             # error occurred or wrong, compose some grader message
             if timedout:
                 grader_msg += make_grader_msg("General", "ACL2 Checking timed out (outer)")
-            elif returncode == 5:
-                grader_msg += make_grader_msg("General", "Compiling failed, message =\n{}".format(
-                    "" if output is None else str(output)))
+#            elif returncode == 5:
+#                grader_msg += make_grader_msg("General", "Compiling failed, message =\n{}".format(
+#                    "" if output is None else str(output)))
             else:
                 grader_msg += make_grader_msg("General", "Something went wrong. Returncode {}. Here is some output\n{}".format(str(returncode),
                     "" if output is None else str(output)) )

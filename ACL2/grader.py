@@ -42,18 +42,20 @@ if __name__ == "__main__":
 
 
     logger.info("Checking")
-    checker_result = subprocess.run(acl_check_command, stdout=subprocess.PIPE) #, encoding="utf-8")
- 
-     
-#	unknown_axiom = None
-#	for line in checker_result.stdout.splitlines():
-#		m = axiom_re.match(line)
-#		if m and m[1] not in ["propext", "classical.choice", "quot.sound"]:
-#			logger.info("UNKNOWN AXIOM: " + m[1])
-#			unknown_axiom = m[1]
 
-    print(checker_result.stdout)
-    
+
+    check_returncode = -1
+    output = ""
+    error = ""
+    timedout = True
+    process = subprocess.Popen(acl_check_command, stdout=subprocess.PIPE)
+    try:
+        output, error = process.communicate(timeout=timeout_sec)
+        timedout = False
+        check_returncode = process.returncode
+    except subprocess.TimeoutExpired:
+        timedout = True
+
     if timedout:
         logger.info("the checking process was killed !!")
         returncode = 8
@@ -64,12 +66,15 @@ if __name__ == "__main__":
     else :
         logger.info("successfully checked")
         # get the return message
-        returncode = checker_result.returncode
-        grader_msg = "OK"
+        returncode = check_returncode # (either 0 = SUCCESS or 1 FAILED)
+        # pass on output
+        grader_msg = output
 
     logger.info("-> Checking is done")
 
-    logger.info("return code is:" + str(returncode))
+    logger.info("return code is:" + str(check_returncode))
+
+    print(grader_msg)
 
     sys.exit(returncode)
 				
