@@ -1,0 +1,45 @@
+Matt Kaufmann
+July 10, 2019
+
+Other than this README, this directory contains 5 files that represent
+an ACL2 formulation of the following "Proving for Fun" challenge
+problem (including a solution):
+
+https://competition.isabelle.systems/competitions/contest/11/tasks/1/
+
+This fits closely with the Proving Competition paradigm as follows.
+
+- Defs Theory: certifiable book definitions.lisp
+
+- Template Theory: file template.lisp (not certifiable)
+
+- Solution file: file solution.lisp, to be provided by the competition
+  participant
+
+- Check file: book check.lisp, which should be certifiable if
+  solution.lisp is suitable.
+
+- Check script: bash file check.sh.
+
+The check file book, check.lisp, will only certify if the definitions
+and theorem(s) are included in solution.lisp.  This certification is
+done automatically by check.sh.
+
+My hope is that someone who is familiar with python, JSON, and other
+prerequisites will find it easy to use check.sh to add ACL2 support
+in: https://github.com/maxhaslbeck/proving-contest-backends
+
+It would be easy to allow certain trust tags so that external tools,
+in particular SAT and SMT solvers, are allowed.  That's just a matter
+of adding a cert.acl2 file with a line such as the following (but this
+one allows all possible cheating) -- that would be up to the person
+who formulates the problem in ACL2.
+
+; cert-flags: ? t :ttags :all
+
+I'm not sure of the value of the "ok_with_axioms" result (see
+https://github.com/maxhaslbeck/proving-contest-backends/issues/8#issuecomment-508099262)
+but we could support the use of axioms with a similar use of
+cert-flags, for example:
+
+; cert-flags: ? t :defaxioms-okp t
