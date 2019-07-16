@@ -16,7 +16,8 @@ At the moment, the grader checks the lemma/theorem called `main` in `Check.lean`
 Tests can be executed using `tests_run.sh` and `tests.py`.
 
 ## TODOs
-- There is no message and check output returned from `grader.py` to `poller_lean.py` so far.
+- Messages returned from `grader.py` to `poller_lean.py` needs to be enhanced (better (error) messages).
+- Fundamentally, check messages seem to work, but that should be double checked.
 - Variables are not detected
 - The grader can only check one theorem at a time (`main`)
 - `sorry`/`admit` stops the compilation process. This causes problems if multiple lemmas should be checked from the same submission (cf. previous point)
