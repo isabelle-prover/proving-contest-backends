@@ -10,15 +10,18 @@ Then insert the correct URL for the frontend server and your access token.
 The backend can simply be administered via
 `./judge start`, `./judge status`, and `./judge stop`.
 
-At the moment, the grader checks the lemma/theorem called `main` in `Check.lean`.
+It expects the following structure of the submitted files:
+
++-- _Defs.lean_
++-- _Submission.lean_
++-- _Check.lean_
+
+The poller checks all lemmas/theorems in `Check.lean`. 
 
 ## Tests
 Tests can be executed using `tests_run.sh` and `tests.py`.
 
 ## TODOs
-- Messages returned from `grader.py` to `poller_lean.py` needs to be enhanced (better (error) messages).
-- Fundamentally, check messages seem to work, but that should be double checked.
-- Variables are not detected
-- The grader can only check one theorem at a time (`main`)
-- `sorry`/`admit` stops the compilation process. This causes problems if multiple lemmas should be checked from the same submission (cf. previous point)
-- firejail needs to be fixed in `grader.sh`
+- firejail needs to be fixed in `grader_run.sh`
+- Some of the tests might fail though the output is correct for we compare objects directly, not modulo re-ordering of arrays and members.
+- The passed `timeout_all` flag is used on a per theorem basis (but should be on a per submission basis).

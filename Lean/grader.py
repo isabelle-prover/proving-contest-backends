@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 # Return codes:
-# 4: Successfully compiled and checked
-# 5: Compilation failed
-# 6: Timeout
-# 7: Axiom/Constant found
+SUCCESS = 0 # Successfully compiled and checked
+COMPILATION_ERROR = 1
+TIMEOUT = 2
+AXIOM = 3
 
 import subprocess
 import sys
@@ -13,42 +13,46 @@ import re
 import logging
 import os
 
-axiom_re = re.compile("\s*(axiom|constant)s?\s")
-theorem_to_check = "main"
+LOG_LEVEL = logging.INFO
+
+axiom_re = re.compile(".*axiom\s+([^\s][^\s:]*).*")
 out_file = "check.out"
 
+def create_axiom_output(axiom):
+    return { "axiom": axiom }
+
 if __name__ == "__main__":
-    loglevel = logging.INFO
 
     current_folder = os.path.dirname(os.path.realpath(__file__)) + "/"
     file_to_compile = current_folder + "Check.lean"
     if len(sys.argv) > 1:
         file_to_compile = sys.argv[1]
-    timeout_sec = 60
+    theorem_to_check = "main"
     if len(sys.argv) > 2:
-        timeout_sec = int(sys.argv[2])
-    
+        theorem_to_check = sys.argv[2]
+    timeout_sec = 60
+    if len(sys.argv) > 3:
+        timeout_sec = int(sys.argv[3])
+   
     ## INITIALIZE LOGGING
     logging.basicConfig(
-        #filename = "grader.log",
-        stream   = sys.stderr,
+        filename = current_folder + "grader.log",
         filemode = 'a',
         format   = '%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
         datefmt  = '%m-%d %H:%M:%S',
-        level    = loglevel
+        level    = LOG_LEVEL
     )
     logger = logging.getLogger('grader')
 
     logger.info("## Lean Grader")
-    logger.debug("In debug mode")
-    logger.debug("timeout set to " + str(timeout_sec))
+    logger.debug("Timeout set to " + str(timeout_sec))
 
     lean_bin = current_folder + "lean/bin/"
     out_file_path = current_folder + out_file
-    compile_command = [lean_bin + "lean", file_to_compile, "-E", out_file_path, "--json"]
+    compile_command = [lean_bin + "lean", file_to_compile, "-E", out_file_path, "--json", "--only-export=" + theorem_to_check]
     check_command = [lean_bin + "leanchecker", out_file_path, theorem_to_check]
 
-    logger.info("Compiling...")
+    logger.info("Compiling " + file_to_compile + " theorem: " + theorem_to_check + " ...")
     compile_returncode = -1
     try:
         compile_result = subprocess.run(compile_command, stdout=subprocess.PIPE, timeout=timeout_sec, encoding="utf-8")
@@ -59,45 +63,40 @@ if __name__ == "__main__":
         logger.info("compiler return code is: " + str(compile_returncode))
         logger.info("compiler output is: " + compile_output)
     except subprocess.TimeoutExpired:
-        logger.info("Compilation timeout")
+        logger.info("Compilation timeout after %s seconds" % timeout_sec)
         timedout = True
 
     returncode = -1
     if(timedout) :
         # compilation timeout
-        returncode = 6
-        grader_msg = "The compilation process was killed after %s seconds!" % timeout_sec
-    elif (compile_returncode != 0) :
+        returncode = TIMEOUT
+    elif (compile_returncode != SUCCESS) :
         # compilation failed
-        returncode = 5
-        grader_msg = compile_output
+        returncode = COMPILATION_ERROR
+        print(compile_output)
     else :
         logger.info("Checking compiled file...")
-        checker_result = subprocess.run(check_command, stdout=subprocess.PIPE, timeout=timeout_sec, encoding="utf-8")
-        logger.info(checker_result.stdout)
-        unknown_axiom = False
-        for line in checker_result.stdout.splitlines():
-            m = axiom_re.match(line)
-            if m :
-                logger.info("found an axiom/constant")
-                unknown_axiom = True
-                break
+        try:
+            checker_result = subprocess.run(check_command, stdout=subprocess.PIPE, timeout=timeout_sec, encoding="utf-8")
+            logger.info(checker_result.stdout)
+            unknown_axiom = None
+            for line in checker_result.stdout.splitlines():
+                match = axiom_re.match(line)
+                if match and match[1] not in ["propext", "classical.choice", "quot.sound"]:
+                    unknown_axiom = create_axiom_output(match[1])
+                    break
+        except subprocess.TimeoutExpired:
+            logger.info("Checker timeout after %s seconds" % timeout_sec)
+            timedout = True
 
         if timedout:
-            logger.info("the checking process was killed !!")
-            returncode = 6
-            grader_msg = "the checking process was killed after %s !!" % timeout_sec
-        elif unknown_axiom:
-            returncode = 7
-            grader_msg = "No axioms/constants allowed"
+            returncode = TIMEOUT
+        elif unknown_axiom != None:
+            returncode = AXIOM
+            print(unknown_axiom)
         else :
-            logger.info("successfully checked")
-            returncode = 4
-            grader_msg = "OK"
+            returncode = SUCCESS
 
         logger.info("-> Checking done")
 
-    logger.info(grader_msg)
-    logger.info("return code is: " + str(returncode))
-    print(grader_msg)
     sys.exit(returncode)
