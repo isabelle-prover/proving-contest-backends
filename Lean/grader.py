@@ -3,6 +3,8 @@
 # Return codes:
 # 4: Successfully compiled and checked
 # 5: Compilation failed
+# 6: Timeout
+# 7: Axiom/Constant found
 
 import subprocess
 import sys
@@ -63,14 +65,12 @@ if __name__ == "__main__":
     returncode = -1
     if(timedout) :
         # compilation timeout
-        returncode = 8
+        returncode = 6
         grader_msg = "The compilation process was killed after %s seconds!" % timeout_sec
-        logger.info(grader_msg)
     elif (compile_returncode != 0) :
         # compilation failed
         returncode = 5
-        grader_msg = "Compilation failed"
-        logger.info(grader_msg)
+        grader_msg = compile_output
     else :
         logger.info("Checking compiled file...")
         checker_result = subprocess.run(check_command, stdout=subprocess.PIPE, timeout=timeout_sec, encoding="utf-8")
@@ -85,10 +85,10 @@ if __name__ == "__main__":
 
         if timedout:
             logger.info("the checking process was killed !!")
-            returncode = 8
+            returncode = 6
             grader_msg = "the checking process was killed after %s !!" % timeout_sec
         elif unknown_axiom:
-            returncode = 8
+            returncode = 7
             grader_msg = "No axioms/constants allowed"
         else :
             logger.info("successfully checked")
@@ -97,5 +97,7 @@ if __name__ == "__main__":
 
         logger.info("-> Checking done")
 
+    logger.info(grader_msg)
     logger.info("return code is: " + str(returncode))
+    print(grader_msg)
     sys.exit(returncode)
