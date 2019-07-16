@@ -92,7 +92,7 @@ cp -R startserverscript $graderfolder
 echo "======================================================"
 echo "prepare checking files in folder: $graderfolder"
 cp OK_Test.thy $graderfolder
-cp Defs.thy $graderfolder
+cp Defs0.thy $graderfolder
 
 
 

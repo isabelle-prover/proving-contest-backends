@@ -144,10 +144,11 @@ class Poller_Isa(Poller):
             logger.debug("Write the theory files")
             try:
                 for name, content in (("Defs", defs), ("Submission", submission), ("Check", check)):
-                    if name == "Defs":
-                        name = "Defs0"
-                        p = content.split("imports", 1)
-                        content = "theory Defs0 imports" + p[1]
+                    if name == "Submission":
+                        # this still is brittle, we hope that the first occurrence of "Defs" is th
+                        # correct one, and people don't add comments before the header containing "Defs" 
+                        p = content.split("Defs", 1)
+                        content = p[0] + "Defs0" + p[1]
                     logger.debug(
                         "Writing file '{}{}.thy'!".format(grader_path, name))
                     with open("{}{}.thy".format(grader_path, name), 'w', encoding='utf-8') as text_file:
