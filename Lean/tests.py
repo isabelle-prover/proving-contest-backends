@@ -15,9 +15,9 @@ class TestPoller_Lean(unittest.TestCase):
         with open(test_folder + path, "r") as file: return file.read()
 
     def runTest(self, path, expected, timeout_all=60, allow_sorry=None, check_file=None):
-        defs = self.readFile(path + "/Defs.lean")
-        sub = self.readFile(path + "/Submission.lean")
-        check = self.readFile(path + "/Check.lean")
+        defs = self.readFile(path + "/defs.lean")
+        sub = self.readFile(path + "/submission.lean")
+        check = self.readFile(path + "/check.lean")
         self.assertEqual(self.poller.grade_submission(0, 0, defs, sub, check, 0,
             "3.4.2", 60, timeout_all, allow_sorry, check_file), expected)
 
@@ -48,22 +48,22 @@ class TestPoller_Lean(unittest.TestCase):
         self.runTest("timeout", expected, 0)
 
     def test_parse_error(self):
-        expected_msg = [{'where': 'Submission.lean at line 1, column 0', 'what': "ERROR: file 'lamma' not found in the LEAN_PATH"}, {'where': 'Submission.lean at line 1, column 0', 'what': "ERROR: file 'my_proof' not found in the LEAN_PATH"}, {'where': 'Submission.lean at line 1, column 0', 'what': 'ERROR: invalid import: lamma\ncould not resolve import: lamma'}, {'where': 'Submission.lean at line 1, column 0', 'what': 'ERROR: invalid import: my_proof\ncould not resolve import: my_proof'}, {'where': 'Submission.lean at line 3, column 15', 'what': 'ERROR: command expected'}, {'where': 'Check.lean at line 1, column 0', 'what': 'ERROR: invalid import: lamma\ncould not resolve import: lamma'}, {'where': 'Check.lean at line 1, column 0', 'what': 'ERROR: invalid import: my_proof\ncould not resolve import: my_proof'}, {'where': 'Check.lean at line 3, column 26', 'what': "ERROR: unknown identifier 'my_proof'"}, {'where': 'Check.lean at line 3, column 0', 'what': "WARNING: declaration 'main' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: could not resolve import: my_proof'}]
+        expected_msg = [{'where': 'submission.lean at line 1, column 0', 'what': "ERROR: file 'lamma' not found in the LEAN_PATH"}, {'where': 'submission.lean at line 1, column 0', 'what': "ERROR: file 'my_proof' not found in the LEAN_PATH"}, {'where': 'submission.lean at line 1, column 0', 'what': 'ERROR: invalid import: lamma\ncould not resolve import: lamma'}, {'where': 'submission.lean at line 1, column 0', 'what': 'ERROR: invalid import: my_proof\ncould not resolve import: my_proof'}, {'where': 'submission.lean at line 3, column 15', 'what': 'ERROR: command expected'}, {'where': 'check.lean at line 1, column 0', 'what': 'ERROR: invalid import: lamma\ncould not resolve import: lamma'}, {'where': 'check.lean at line 1, column 0', 'what': 'ERROR: invalid import: my_proof\ncould not resolve import: my_proof'}, {'where': 'check.lean at line 3, column 26', 'what': "ERROR: unknown identifier 'my_proof'"}, {'where': 'check.lean at line 3, column 0', 'what': "WARNING: declaration 'main' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: could not resolve import: my_proof'}]
         expected = {'submission_is_valid': False, 'messages': expected_msg, 'checks': [{'name': 'main', 'result': 'error'}], 'log': ''}
         self.runTest("parse_error", expected)
 
     def test_failed_proof(self):
-        expectedMsg = [{'where': 'Submission.lean at line 3, column 30', 'what': 'ERROR: type mismatch, term\n  or.assoc\nhas type\n  (?m_1 ∨ ?m_2) ∨ ?m_3 ↔ ?m_1 ∨ ?m_2 ∨ ?m_3\nbut is expected to have type\n  1 + 1 = 2'}, {'where': 'Check.lean at line 1, column 0', 'what': "WARNING: imported file 'Submission.lean' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
+        expectedMsg = [{'where': 'submission.lean at line 3, column 30', 'what': 'ERROR: type mismatch, term\n  or.assoc\nhas type\n  (?m_1 ∨ ?m_2) ∨ ?m_3 ↔ ?m_1 ∨ ?m_2 ∨ ?m_3\nbut is expected to have type\n  1 + 1 = 2'}, {'where': 'check.lean at line 1, column 0', 'what': "WARNING: imported file 'submission.lean' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
         expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'error'}], 'log': ''}
         self.runTest("failed_proof", expected)
 
     def test_sorry(self):
-        expectedMsg = [{'where': 'Submission.lean at line 3, column 0', 'what': "WARNING: declaration 'my_proof' uses sorry"}, {'where': 'Check.lean at line 1, column 0', 'what': "WARNING: imported file 'Submission.lean' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
+        expectedMsg = [{'where': 'submission.lean at line 3, column 0', 'what': "WARNING: declaration 'my_proof' uses sorry"}, {'where': 'check.lean at line 1, column 0', 'what': "WARNING: imported file 'submission.lean' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
         expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'error'}], 'log': ''}
         self.runTest("sorry", expected)
 
     def test_admit(self):
-        expectedMsg = [{'where': 'Check.lean at line 1, column 0', 'what': "WARNING: imported file 'Submission.lean' uses sorry"}, {'where': 'Submission.lean at line 3, column 0', 'what': "WARNING: declaration 'my_proof' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
+        expectedMsg = [{'where': 'check.lean at line 1, column 0', 'what': "WARNING: imported file 'submission.lean' uses sorry"}, {'where': 'submission.lean at line 3, column 0', 'what': "WARNING: declaration 'my_proof' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
         expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'error'}], 'log': ''}
         self.runTest("admit", expected)
 
@@ -72,7 +72,7 @@ class TestPoller_Lean(unittest.TestCase):
         self.runTest("regex", expected)
 
     def test_multiple(self):
-        expected = {'submission_is_valid': False, 'messages': [{'where': 'Submission.lean at line 5, column 0', 'what': "WARNING: declaration 'my_proof_hard' uses sorry"}, {'where': 'Check.lean at line 1, column 0', 'what': "WARNING: imported file 'Submission.lean' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}, {'where': 'proof_cheat', 'what': "WARNING: Unknown axiom 'cheat' used to prove theorem 'proof_cheat'."}], 'checks': [{'name': 'proof_easy', 'result': 'ok'}, {'name': 'proof_hard', 'result': 'error'}, {'name': 'proof_cheat', 'result': 'ok_with_axioms'}], 'log': ''}
+        expected = {'submission_is_valid': False, 'messages': [{'where': 'submission.lean at line 5, column 0', 'what': "WARNING: declaration 'my_proof_hard' uses sorry"}, {'where': 'check.lean at line 1, column 0', 'what': "WARNING: imported file 'submission.lean' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}, {'where': 'proof_cheat', 'what': "WARNING: Unknown axiom 'cheat' used to prove theorem 'proof_cheat'."}], 'checks': [{'name': 'proof_easy', 'result': 'ok'}, {'name': 'proof_hard', 'result': 'error'}, {'name': 'proof_cheat', 'result': 'ok_with_axioms'}], 'log': ''}
         self.runTest("multiple", expected)
 
 if __name__ == '__main__':

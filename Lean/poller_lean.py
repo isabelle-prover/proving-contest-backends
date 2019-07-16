@@ -81,7 +81,7 @@ class Poller_Lean(Poller):
         returncode = -1
         timedout = False
         try:
-            lean_result = subprocess.run(grader_run + [grader_path, grader_path + "Check.lean", theorem, str(timeout_all)], stdout=subprocess.PIPE, timeout=timeout_all, encoding="utf-8")
+            lean_result = subprocess.run(grader_run + [grader_path, grader_path + "check.lean", theorem, str(timeout_all)], stdout=subprocess.PIPE, timeout=timeout_all, encoding="utf-8")
             returncode = lean_result.returncode
             output = lean_result.stdout
         except subprocess.TimeoutExpired:
@@ -112,7 +112,7 @@ class Poller_Lean(Poller):
         logger.info("Grading new submission")
         logger.debug("Copying Lean files to grader folder...")
         grader_path = grader_folder + "/" + version + "/"
-        for name, content in (("Defs", defs), ("Submission", submission), ("Check", check)):
+        for name, content in (("defs", defs), ("submission", submission), ("check", check)):
             logger.debug("writing file '{}{}.lean'!".format(grader_path, name))
             text_file = codecs.open(grader_path + name + ".lean", "w", "utf-8")
             text_file.write(content)

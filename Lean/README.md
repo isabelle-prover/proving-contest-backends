@@ -12,11 +12,11 @@ The backend can simply be administered via
 
 It expects the following structure of the submitted files:
 
-+-- _Defs.lean_
-+-- _Submission.lean_
-+-- _Check.lean_
++-- _defs.lean_
++-- _submission.lean_
++-- _check.lean_
 
-The poller checks all lemmas/theorems in `Check.lean`. 
+The poller checks all lemmas/theorems in `check.lean`. 
 
 ## Tests
 Tests can be executed using `tests_run.sh` and `tests.py`.

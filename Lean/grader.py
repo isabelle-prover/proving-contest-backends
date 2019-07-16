@@ -24,7 +24,7 @@ def create_axiom_output(axiom):
 if __name__ == "__main__":
 
     current_folder = os.path.dirname(os.path.realpath(__file__)) + "/"
-    file_to_compile = current_folder + "Check.lean"
+    file_to_compile = current_folder + "check.lean"
     if len(sys.argv) > 1:
         file_to_compile = sys.argv[1]
     theorem_to_check = "main"
