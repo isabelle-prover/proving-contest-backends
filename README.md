@@ -9,7 +9,7 @@ The individual steps for initial setup are documented in the `README` files of t
 ## Implementing Your Own Backend
 The file `poller.py` handles the communication with the frontend server.
 It provides an abstract class `Poller` in which mainly the method `grade_submission` needs to be implemented.
-For a simple example, see the Lean implementaion in `Lean/lean_poller.py`.
+For a simple example, see the Lean implementaion in `Lean/poller_lean.py`.
 Sometimes, a watchdog facility to restart everything in case of an error
 can be useful. This functionality is implemented in in `watchdog.py`.
 See the Isabelle implementation for a usage example.
