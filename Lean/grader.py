@@ -30,7 +30,7 @@ if __name__ == "__main__":
     theorem_to_check = "main"
     if len(sys.argv) > 2:
         theorem_to_check = sys.argv[2]
-    timeout_sec = 60
+    timeout_sec = 10
     if len(sys.argv) > 3:
         timeout_sec = int(sys.argv[3])
    
