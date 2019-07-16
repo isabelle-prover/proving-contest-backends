@@ -1,5 +1,5 @@
 import .submission
 
-       theorem     main: 1+ 1 = 2 :=
+       theorem     main_theorem  : 1+ 1 = 2 :=
 
 my_proof

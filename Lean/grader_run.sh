@@ -14,4 +14,4 @@ actual_path=${1:-$grader_path}
 # firejail \
     # --profile=lean.profile \
     # --private=$actual_path \
-    python3 "${actual_path}grader.py" "${2:-${actual_path}Check.lean}" ${3:-main} ${4:-10}
+    python3 "${actual_path}grader.py" "${2:-${actual_path}check.lean}" ${3:-main} ${4:-10}

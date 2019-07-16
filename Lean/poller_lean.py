@@ -17,7 +17,7 @@ OK = "ok"
 OK_WITH_AXIOMS = "ok_with_axioms"
 ERROR = "error"
 
-theorem_re = re.compile(".*(theorem|lemma)\s+([^\s][^\s:]*).*")
+theorem_re = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
 
 try:
     grader_folder = open("variables/grader_folder", "r").read().splitlines()[0]
@@ -109,7 +109,7 @@ class Poller_Lean(Poller):
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version,
             timeout_socket, timeout_all, allow_sorry, check_file):
         logger = self.logger
-        logger.info("Grading new submission")
+        logger.info("Grading new submission " + str(submission_id))
         logger.debug("Copying Lean files to grader folder...")
         grader_path = grader_folder + "/" + version + "/"
         for name, content in (("defs", defs), ("submission", submission), ("check", check)):
@@ -125,6 +125,7 @@ class Poller_Lean(Poller):
         for theorem in get_theorem_list(check):
             self.grade_theorem(theorem, summary, grader_path, timeout_all)
 
+        logger.info("Done grading submission " + str(submission_id))
         return summary
 
     def tidy(self):

@@ -35,7 +35,7 @@ class TestPoller_Lean(unittest.TestCase):
         self.runTest("axiom", expected)
 
     def test_axiom_ok(self):
-        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}], 'log': ''}
+        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main_lemma', 'result': 'ok'}], 'log': ''}
         self.runTest("axiom_ok", expected)
 
     def test_constant(self):
@@ -64,11 +64,11 @@ class TestPoller_Lean(unittest.TestCase):
 
     def test_admit(self):
         expectedMsg = [{'where': 'check.lean at line 1, column 0', 'what': "WARNING: imported file 'submission.lean' uses sorry"}, {'where': 'submission.lean at line 3, column 0', 'what': "WARNING: declaration 'my_proof' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: failed to expand macro'}]
-        expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'error'}], 'log': ''}
+        expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'some_lemma', 'result': 'error'}], 'log': ''}
         self.runTest("admit", expected)
 
     def test_regex(self):
-        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}], 'log': ''}
+        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main_theorem', 'result': 'ok'}], 'log': ''}
         self.runTest("regex", expected)
 
     def test_multiple(self):

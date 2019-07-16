@@ -15,7 +15,7 @@ import os
 
 LOG_LEVEL = logging.INFO
 
-axiom_re = re.compile(".*axiom\s+([^\s][^\s:]*).*")
+axiom_re = re.compile("^.*axiom\s+([^\s:({[⦃⟦]+).*")
 out_file = "check.out"
 
 def create_axiom_output(axiom):
