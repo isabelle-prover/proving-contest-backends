@@ -23,5 +23,7 @@ Tests can be executed using `tests_run.sh` and `tests.py`.
 
 ## TODOs
 - firejail needs to be fixed in `grader_run.sh`
-- Some of the tests might fail though the output is correct for we compare objects directly, not modulo re-ordering of arrays and members.
+- Mathlib is not used by the grader.
+- The lean version is strict at the moment, for example, a server running Lean 3.4.2 will not accept request for Lean 3.4.1.
 - The passed `timeout_all` flag is used on a per theorem basis (but should be on a per submission basis).
+- Some of the tests might fail though the output is correct for we compare objects directly, not modulo re-ordering of arrays and members.
