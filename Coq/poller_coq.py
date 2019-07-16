@@ -41,7 +41,7 @@ class Poller_Coq(Poller):
 
         process = subprocess.Popen(
             [grader_binary, "--timeout={}".format(timeout_all), workdir],
-            stdout=subprocess.PIPE, text=True
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
         output, err = process.communicate()
         returncode = process.returncode
