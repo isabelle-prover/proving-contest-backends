@@ -49,6 +49,7 @@ if __name__ == "__main__":
 
     lean_bin = current_folder + "lean/bin/"
     out_file_path = current_folder + out_file
+    # Flags can be found at https://github.com/leanprover/lean/blob/ceacfa7445953cbc8860ddabc55407430a9ca5c3/src/shell/lean.cpp
     compile_command = [lean_bin + "lean", file_to_compile, "-E", out_file_path, "--json", "--only-export=" + theorem_to_check]
     check_command = [lean_bin + "leanchecker", out_file_path, theorem_to_check]
 

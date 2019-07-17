@@ -8,22 +8,34 @@ import ast
 
 from poller import Poller, Grader_Panic 
 
+PROVER_NAME = "LEA"
+
+# Codes returned by the grader
 SUCCESS = 0 # Successfully compiled and checked
 COMPILATION_ERROR = 1
 TIMEOUT = 2
 AXIOM = 3
 
+# Codes returned by the poller
 OK = "ok"
 OK_WITH_AXIOMS = "ok_with_axioms"
 ERROR = "error"
 
-theorem_re = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
+FILE_NAME_DEFS = 'defs.lean'
+FILE_NAME_SUBMISSION = 'submission.lean'
+FILE_NAME_CHECK = 'check.lean'
+
+# List of error messages that should be ignored
+ERROR_MSG_IGNORE_LIST = ["failed to expand macro"]
+
+THEOREM_RE = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
 
 try:
-    grader_folder = open("variables/grader_folder", "r").read().splitlines()[0]
+    GRADER_FOLDER = open("variables/grader_folder", "r").read().splitlines()[0]
 except Exception as e:
     logging.exception("Cannot load grader path from variables/grader_folder")
-grader_run = ["./grader_run.sh"]
+GRADER_RUN = ["./grader_run.sh"]
+
 
 def make_check_entry(name, result):
     return [ { "name": name, "result": result } ]
@@ -48,9 +60,11 @@ def parse_compile_error(error, grader_path):
     for errorString in error.splitlines():
         try:
             error_obj = ast.literal_eval(errorString)
-            msgs += make_msg_entry (
-                make_msg_where_string(error_obj["file_name"], error_obj["pos_line"], error_obj["pos_col"]),
-                make_msg_what_string(error_obj["severity"], error_obj["text"]))
+            if (error_obj["text"] not in ERROR_MSG_IGNORE_LIST):
+                msgs += make_msg_entry(
+                    make_msg_where_string(error_obj["file_name"], error_obj["pos_line"], error_obj["pos_col"]),
+                    make_msg_what_string(error_obj["severity"], error_obj["text"])
+                )
         except BaseException: pass 
     return msgs
 
@@ -64,24 +78,39 @@ def parse_axiom_output(output, theorem):
     except ValueError: pass
     return msgs
 
+def is_error(obj):
+    return obj["severity"].upper() == "ERROR" and obj["text"] not in ERROR_MSG_IGNORE_LIST
+
+def has_error(output):
+    for line in output.splitlines():
+        try:
+            obj = ast.literal_eval(line)
+            if is_error(obj): return True
+        except BaseException: pass
+    return False
+
+def insert_error(summary, theorem):
+    summary["checks"] += make_check_entry(theorem, ERROR)
+    summary["submission_is_valid"] = False
+
 def get_theorem_list(file_content):
     theorems = []
     for line in file_content.splitlines():
-        match = theorem_re.match(line)
+        match = THEOREM_RE.match(line)
         if match: theorems += [match[2]]
     return theorems
 
 class Poller_Lean(Poller):
 
     def init(self):
-        self.make_pollurl("LEA")
+        self.make_pollurl(PROVER_NAME)
 
     def grade_theorem(self, theorem, summary, grader_path, timeout_all):
         logger = self.logger
         returncode = -1
         timedout = False
         try:
-            lean_result = subprocess.run(grader_run + [grader_path, grader_path + "check.lean", theorem, str(timeout_all)], stdout=subprocess.PIPE, timeout=timeout_all, encoding="utf-8")
+            lean_result = subprocess.run(GRADER_RUN + [grader_path, grader_path + FILE_NAME_CHECK, theorem, str(timeout_all)], stdout=subprocess.PIPE, timeout=timeout_all, encoding="utf-8")
             returncode = lean_result.returncode
             output = lean_result.stdout
         except subprocess.TimeoutExpired:
@@ -90,31 +119,37 @@ class Poller_Lean(Poller):
         if returncode == SUCCESS:
             summary["checks"] += make_check_entry(theorem, OK)
         else:
-            # error occurred; compose some grader message
-            summary["submission_is_valid"] = False
+            # something went wrong; compose some grader message
             if returncode == COMPILATION_ERROR:
                 summary["messages"] += parse_compile_error(output, grader_path)
-                summary["checks"] += make_check_entry(theorem, ERROR)
+                # we get a compiler error if
+                # 1. There is an actual compilation error
+                # 2. The submission contains sorry
+                # We detect case 2 by checking that the output contains no "real" errors
+                if (has_error(output)):
+                    insert_error(summary, theorem)
+                else:
+                    summary["checks"] += make_check_entry(theorem, OK_WITH_AXIOMS)
             elif returncode == TIMEOUT or timedout:
-                summary["messages"] += make_msg_entry("General", "The checker timed out.")
+                summary["messages"] += make_msg_entry(theorem, "The checker timed out after %d seconds." % timeout_all)
+                insert_error(summary, theorem)
             elif returncode == AXIOM:
                 summary["messages"] += parse_axiom_output(output, theorem)
                 summary["checks"] += make_check_entry(theorem, OK_WITH_AXIOMS)
             else:
-                summary["messages"] += make_msg_entry("General", "Something went wrong:\n{}".format(
+                summary["messages"] += make_msg_entry(theorem, "Something went wrong:\n{}".format(
                     "" if output is None else str(output)))
-                summary["checks"] += make_check_entry(theorem, ERROR)
-
+                insert_error(summary, theorem)
 
     def grade_submission(self, submission_id, assessment_id, defs, submission, check, image, version,
             timeout_socket, timeout_all, allow_sorry, check_file):
         logger = self.logger
         logger.info("Grading new submission " + str(submission_id))
         logger.debug("Copying Lean files to grader folder...")
-        grader_path = grader_folder + "/" + version + "/"
-        for name, content in (("defs", defs), ("submission", submission), ("check", check)):
-            logger.debug("writing file '{}{}.lean'!".format(grader_path, name))
-            text_file = codecs.open(grader_path + name + ".lean", "w", "utf-8")
+        grader_path = GRADER_FOLDER + "/" + version + "/"
+        for name, content in ((FILE_NAME_DEFS, defs), (FILE_NAME_SUBMISSION, submission), (FILE_NAME_CHECK, check)):
+            logger.debug("writing file '{}{}'!".format(grader_path, name))
+            text_file = codecs.open(grader_path + name, "w", "utf-8")
             text_file.write(content)
             text_file.close()
 
