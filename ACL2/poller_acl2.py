@@ -8,7 +8,7 @@ from poller import Poller, Grader_Panic
 
 pollurl = "pollsubmission/?itp=ACL"
 puturl = "putresult/"
-grader_path = "/var/lib/acl2-grader/"
+grader_path = "/var/lib/acl2-grader/tocheck/"
 acl2_compile_and_check = ["./grader.sh"]
 axiom_re = re.compile("axiom ([^ ]*) .*")
 
@@ -19,7 +19,7 @@ def make_grader_msg(where, what):
 def make_summary(result, grader_msg, grader_checks, log):
     return { "submission_is_valid": result, "messages": grader_msg, "checks": grader_checks, "log": log}
       
-class Poller_Lean(Poller):
+class Poller_ACL2(Poller):
 
     def init(self):
         self.make_pollurl("ACL")
@@ -62,6 +62,21 @@ class Poller_Lean(Poller):
         if returncode == 0:
             # successfully checked
             grader_msg += make_grader_msg("General", "ACL2 Checking succeed")
+            # try to parse "CHECK-RESULT: list of pairs:"
+            outstr = str(output)
+            split1 = outstr.split("CHECK-RESULT: list of pairs: ",1)
+            split2 = split1[1].split("\\\\n")[0].strip()
+            split3 = split2[2:-2].split(") (") 
+            for judgement in split3:
+                j_split = judgement.split(" ", 1)
+                j_name = j_split[0]
+                j_result = j_split[1]
+                if j_result == "OK":
+                    j_result = "ok"
+                grader_checks += [ {"name": j_name, "result": j_result } ]
+            #grader_msg += make_grader_msg("check-result", split3)
+            
+
             result = True
         else:
             # error occurred or wrong, compose some grader message
@@ -94,4 +109,4 @@ if __name__ == "__main__":
                         datefmt='%m-%d %H:%M:%S',
                         level=loglevel)
 
-    Poller_Lean().run()
+    Poller_ACL2().run()
