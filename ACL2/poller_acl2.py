@@ -73,6 +73,8 @@ class Poller_ACL2(Poller):
                 j_result = j_split[1]
                 if j_result == "OK":
                     j_result = "ok"
+                elif j_result == "SKIPPED":
+                    j_result = "ok_with_axioms"
                 grader_checks += [ {"name": j_name, "result": j_result } ]
             #grader_msg += make_grader_msg("check-result", split3)
             

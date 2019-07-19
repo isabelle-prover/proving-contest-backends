@@ -2,7 +2,7 @@
 
 ; The following is not necessary in this example, since the book has no
 ; events.
-(include-book "definitions")
+(include-book "Defs")
 
 (defun rev (x)
   (if (consp x)
@@ -10,11 +10,13 @@
               (list (car x)))
     nil))
 
-(skip-proofs
+(defthm rev-append
+  (equal (rev (append x y))
+         (append (rev y) (rev x))))
+
 (defthm triple-rev-is-rev
   (equal (rev (rev (rev x)))
          (rev x)))
-)
 
 (defun dotprod (x y)
   (if (consp x)
@@ -30,10 +32,8 @@
            (equal (dotprod (append x1 y1) (append x2 y2))
                   (+ (dotprod x1 x2) (dotprod y1 y2)))))
 
-(skip-proofs
 (defthm len-rev
   (equal (len (rev x)) (len x)))
-)
 
 (defthm dotprod-rev-rev
   (implies (equal (len x) (len y))

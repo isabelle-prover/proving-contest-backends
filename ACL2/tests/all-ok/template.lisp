@@ -2,7 +2,7 @@
 
 ; The following is not necessary in this example, since the book has no
 ; events.
-(include-book "definitions")
+(include-book "Defs")
 
 ; Define rev to reverse its list argument:
 ; (defun rev (x) ...)

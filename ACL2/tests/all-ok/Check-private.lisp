@@ -3,7 +3,25 @@
 
 (in-package "ACL2")
 (include-book "../system/ok-or-skipped-doublets")
-(include-book "check-public")
+(include-book "Submission")
+(set-enforce-redundancy t)
+(include-book "Defs")
+
+; The events below represent the theorems to be proved, and are copied from
+; template.lisp.
+
+(defthm triple-rev-is-rev
+  (equal (rev (rev (rev x)))
+         (rev x)))
+
+(defthm dotprod-test
+  (equal (dotprod '(1 2 3 4) '(1 10 100 1000))
+         4321))
+
+(defthm dotprod-rev-rev
+  (implies (equal (len x) (len y))
+           (equal (dotprod (rev x) (rev y))
+                  (dotprod x y))))
 
 (thm (equal (rev nil)
             nil))

@@ -2,9 +2,9 @@
 ; problem.
 
 (in-package "ACL2")
-(include-book "solution")
+(include-book "Submission")
 (set-enforce-redundancy t)
-(include-book "definitions")
+(include-book "Defs")
 
 ; The events below represent the theorems to be proved, and are copied from
 ; template.lisp.
