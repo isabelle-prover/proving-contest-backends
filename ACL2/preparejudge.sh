@@ -7,7 +7,7 @@ currentfolder=`pwd`
 
 echo "======================================================"
 echo "installing ccl & acl2"
-./installacl2 "$HOME"
+./installacl2.sh "$HOME"
 
 echo "======================================================"
 echo "preparing grader folder"
