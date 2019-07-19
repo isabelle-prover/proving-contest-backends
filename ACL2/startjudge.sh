@@ -18,7 +18,7 @@ if [ "$running" == "0" ]
 	then
 	echo "starting poller now"
 
-	PYTHONPATH=.. python3.7 poller_acl2.py DEBUG &
+	PYTHONPATH=.. python3 poller_acl2.py DEBUG &
 	pollerPID=$!
 	echo "started a poller (PID=$pollerPID)"	
 	echo $pollerPID > pollerPID
