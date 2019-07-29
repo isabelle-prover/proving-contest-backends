@@ -73,7 +73,7 @@ if __name__ == "__main__":
     elif (compile_returncode != SUCCESS) :
         # compilation failed
         returncode = COMPILATION_ERROR
-        print(compile_output)
+        logger.debug(compile_output)
     else :
         logger.info("Checking compiled file...")
         try:
@@ -93,7 +93,7 @@ if __name__ == "__main__":
             returncode = TIMEOUT
         elif unknown_axiom != None:
             returncode = AXIOM
-            print(unknown_axiom)
+            logger.debug(unknown_axiom)
         else :
             returncode = SUCCESS
 
