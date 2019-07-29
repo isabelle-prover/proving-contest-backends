@@ -36,11 +36,10 @@ if __name__ == "__main__":
    
     ## INITIALIZE LOGGING
     logging.basicConfig(
-        filename = current_folder + "grader.log",
-        filemode = 'a',
         format   = '%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
         datefmt  = '%m-%d %H:%M:%S',
-        level    = LOG_LEVEL
+        level    = LOG_LEVEL,
+        handlers=[logging.FileHandler(current_folder + "grader.log", 'a', 'utf-8')]
     )
     logger = logging.getLogger('grader')
 
