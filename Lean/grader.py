@@ -18,6 +18,10 @@ LOG_LEVEL = logging.INFO
 axiom_re = re.compile("^.*axiom\s+([^\s:({[⦃⟦]+).*")
 out_file = "check.out"
 
+
+def print_utf8(s):
+    sys.stdout.buffer.write(str(s).encode('utf8'))
+
 def create_axiom_output(axiom):
     return { "axiom": axiom }
 
@@ -73,7 +77,7 @@ if __name__ == "__main__":
     elif (compile_returncode != SUCCESS) :
         # compilation failed
         returncode = COMPILATION_ERROR
-        logger.debug(compile_output)
+        print_utf8(compile_output)
     else :
         logger.info("Checking compiled file...")
         try:
@@ -93,7 +97,7 @@ if __name__ == "__main__":
             returncode = TIMEOUT
         elif unknown_axiom != None:
             returncode = AXIOM
-            logger.debug(unknown_axiom)
+            print_utf8(unknown_axiom)
         else :
             returncode = SUCCESS
 
