@@ -61,7 +61,7 @@ mv $foldername "$ACLfolder/lisps/ccl"
 echo "installing ACL2"
 cd "$ACLfolder"
 make LISP="$ACLfolder/lisps/ccl/$foldername/ccl.sh"
-
+make basic
 
 
 
