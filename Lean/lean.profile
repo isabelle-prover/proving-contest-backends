@@ -1,6 +1,3 @@
-################################
-# isabelle server setup
-################################
 shell none
 
 private-dev
