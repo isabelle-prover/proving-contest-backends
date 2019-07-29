@@ -12,14 +12,17 @@ class TestPoller_Lean(unittest.TestCase):
         self.maxDiff = None
 
     def readFile(self, path):
-        with open(test_folder + path, "r") as file: return file.read()
+        with open(test_folder + path, "r", encoding="utf-8") as file: return file.read()
 
     def runTest(self, path, expected, timeout_all=60, allow_sorry=None, check_file=None):
         defs = self.readFile(path + "/defs.lean")
         sub = self.readFile(path + "/submission.lean")
         check = self.readFile(path + "/check.lean")
-        self.assertEqual(self.poller.grade_submission(0, 0, defs, sub, check, 0,
-            "3.4.2", 60, timeout_all, allow_sorry, check_file), expected)
+        result = self.poller.grade_submission(0, 0, defs, sub, check, 0,
+            "3.4.2", 60, timeout_all, allow_sorry, check_file)
+        result['messages'] = sorted(list(m.items()) for m in result['messages'])
+        expected['messages'] = sorted(list(m.items()) for m in expected['messages'])
+        self.assertDictEqual(expected, result)
 
     def test_ok(self):
         expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}], 'log': ''}
