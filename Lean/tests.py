@@ -77,5 +77,10 @@ class TestPoller_Lean(unittest.TestCase):
         expected = {'submission_is_valid': True, 'messages': [{'where': 'submission.lean at line 5, column 0', 'what': "WARNING: declaration 'my_proof_hard' uses sorry"}, {'where': 'check.lean at line 1, column 0', 'what': "WARNING: imported file 'submission.lean' uses sorry"}, {'where': 'proof_cheat', 'what': "WARNING: Unknown axiom 'cheat' used to prove theorem 'proof_cheat'."}], 'checks': [{'name': 'proof_easy', 'result': 'ok'}, {'name': 'proof_hard', 'result': 'ok_with_axioms'}, {'name': 'proof_cheat', 'result': 'ok_with_axioms'}], 'log': ''}
         self.runTest("multiple_ok", expected)
 
+    def test_notation_cheat(self):
+        expected = {'submission_is_valid': False, 'messages': [{'where': 'main', 'what': 'Illegal keyword "notation"'}], 'checks': [], 'log': ''}
+        self.runTest("notation_cheat", expected)
+
+
 if __name__ == '__main__':
     unittest.main()

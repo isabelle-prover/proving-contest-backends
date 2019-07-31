@@ -37,6 +37,7 @@ except Exception as e:
 GRADER_RUN = ["./grader_run.sh"]
 
 
+
 def make_check_entry(name, result):
     return [ { "name": name, "result": result } ]
 
@@ -51,6 +52,19 @@ def make_msg_where_string(filename, line, column):
 
 def make_msg_what_string(severity, text):
     return severity.upper() + ": " + text
+
+ILLEGAL_KEYWORDS = [
+    "notation",
+    ]
+
+def check_for_keyword(text, keyword):
+    return keyword in text
+
+def check_for_keywords(submission):
+    for keyword in ILLEGAL_KEYWORDS:
+        if check_for_keyword(submission, keyword):
+            return {"result": False, "messages": make_msg_entry('main','Illegal keyword "%s"' % keyword)}
+    return {"result": True, "messages": []}
 
 def parse_compile_error(error, grader_path):
     # First remove the grader path from the error message
@@ -71,7 +85,7 @@ def parse_compile_error(error, grader_path):
 def parse_axiom_output(output, theorem):
     msgs = []
     try:
-        obj = ast.literal_eval(output)
+        obj = ast.literal_eval(output.splitlines()[0])
         msgs += make_msg_entry(theorem,
             make_msg_what_string("WARNING", "Unknown axiom '" +
             obj["axiom"] + "' used to prove theorem '" + theorem + "'."))
@@ -145,20 +159,27 @@ class Poller_Lean(Poller):
             timeout_socket, timeout_all, allow_sorry, check_file):
         logger = self.logger
         logger.info("Grading new submission " + str(submission_id))
-        logger.debug("Copying Lean files to grader folder...")
-        grader_path = GRADER_FOLDER + "/" + version + "/"
-        for name, content in ((FILE_NAME_DEFS, defs), (FILE_NAME_SUBMISSION, submission), (FILE_NAME_CHECK, check)):
-            logger.debug("writing file '{}{}'!".format(grader_path, name))
-            text_file = codecs.open(grader_path + name, "w", "utf-8")
-            text_file.write(content)
-            text_file.close()
 
-        logger.debug("Successfully copied submission to grader folder")
-        logger.info("Compile & Check Lean proof output in container")
+        # check for key words
+        res = check_for_keywords(submission)
+        
+        if not res["result"]:
+            summary = make_summary(False, res['messages'], [])            
+        else:
+            logger.debug("Copying Lean files to grader folder...")
+            grader_path = GRADER_FOLDER + "/" + version + "/"
+            for name, content in ((FILE_NAME_DEFS, defs), (FILE_NAME_SUBMISSION, submission), (FILE_NAME_CHECK, check)):
+                logger.debug("writing file '{}{}'!".format(grader_path, name))
+                text_file = codecs.open(grader_path + name, "w", "utf-8")
+                text_file.write(content)
+                text_file.close()
 
-        summary = make_summary(True, [], [])
-        for theorem in get_theorem_list(check):
-            self.grade_theorem(theorem, summary, grader_path, timeout_all)
+            logger.debug("Successfully copied submission to grader folder")
+            logger.info("Compile & Check Lean proof output in container")
+
+            summary = make_summary(True, [], [])
+            for theorem in get_theorem_list(check):
+                self.grade_theorem(theorem, summary, grader_path, timeout_all)
 
         logger.info("Done grading submission " + str(submission_id))
         return summary
