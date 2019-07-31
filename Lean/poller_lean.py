@@ -6,7 +6,7 @@ import os
 import subprocess
 import ast
 
-from poller import Poller, Grader_Panic 
+from poller import Poller, Grader_Panic
 
 PROVER_NAME = "LEA"
 
@@ -79,7 +79,7 @@ def parse_compile_error(error, grader_path):
                     make_msg_where_string(error_obj["file_name"], error_obj["pos_line"], error_obj["pos_col"]),
                     make_msg_what_string(error_obj["severity"], error_obj["text"])
                 )
-        except BaseException: pass 
+        except BaseException: pass
     return msgs
 
 def parse_axiom_output(output, theorem):
@@ -129,7 +129,6 @@ class Poller_Lean(Poller):
             output = lean_result.stdout
         except subprocess.TimeoutExpired:
             timedout = True
-
         if returncode == SUCCESS:
             summary["checks"] += make_check_entry(theorem, OK)
         else:
@@ -159,15 +158,14 @@ class Poller_Lean(Poller):
             timeout_socket, timeout_all, allow_sorry, check_file):
         logger = self.logger
         logger.info("Grading new submission " + str(submission_id))
-
         # check for key words
         res = check_for_keywords(submission)
-        
+
         if not res["result"]:
-            summary = make_summary(False, res['messages'], [])            
+            summary = make_summary(False, res['messages'], [])
         else:
             logger.debug("Copying Lean files to grader folder...")
-            grader_path = GRADER_FOLDER + "/" + version + "/"
+            grader_path = f"{GRADER_FOLDER}/{version}/"
             for name, content in ((FILE_NAME_DEFS, defs), (FILE_NAME_SUBMISSION, submission), (FILE_NAME_CHECK, check)):
                 logger.debug("writing file '{}{}'!".format(grader_path, name))
                 text_file = codecs.open(grader_path + name, "w", "utf-8")

@@ -2,9 +2,7 @@ import unittest
 
 from poller_lean import Poller_Lean
 
-# CAVEAT: Occasionally, tests fail though the output is correct
-# for we compare objects directly, not modulo re-ordering of arrays and members.
-test_folder = "tests/"
+test_folder = "test/"
 
 class TestPoller_Lean(unittest.TestCase):
     def setUp(self):
@@ -14,7 +12,7 @@ class TestPoller_Lean(unittest.TestCase):
     def readFile(self, path):
         with open(test_folder + path, "r", encoding="utf-8") as file: return file.read()
 
-    def runTest(self, path, expected, timeout_all=60, allow_sorry=None, check_file=None):
+    def runTest(self, path, expected, timeout_all=60000, allow_sorry=None, check_file=None):
         defs = self.readFile(path + "/defs.lean")
         sub = self.readFile(path + "/submission.lean")
         check = self.readFile(path + "/check.lean")
@@ -81,6 +79,9 @@ class TestPoller_Lean(unittest.TestCase):
         expected = {'submission_is_valid': False, 'messages': [{'where': 'main', 'what': 'Illegal keyword "notation"'}], 'checks': [], 'log': ''}
         self.runTest("notation_cheat", expected)
 
+    def test_mathlib(self):
+        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}, {'name': 'main2', 'result': 'ok'}], 'log': ''}
+        self.runTest("mathlib", expected)
 
 if __name__ == '__main__':
     unittest.main()

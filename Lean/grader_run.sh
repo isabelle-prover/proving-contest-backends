@@ -2,7 +2,7 @@
 
 # Parameters:
 # $1 path to the grader folder containing grader.py. Default: Constructed from variables/lean_version and variables/grader_folder
-# $2 path of the file that should be checked. Default: ${grader_path}Check.lean
+# $2 path of the file that should be checked. Default: ${grader_path}check.lean
 # $3 name of the theorem that should be checked. Default: main
 # $4 timeout for the grader. Default: 10 (seconds)
 

@@ -37,7 +37,7 @@ if __name__ == "__main__":
     timeout_sec = 10
     if len(sys.argv) > 3:
         timeout_sec = int(sys.argv[3])
-   
+
     ## INITIALIZE LOGGING
     logging.basicConfig(
         format   = '%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
@@ -51,15 +51,20 @@ if __name__ == "__main__":
     logger.debug("Timeout set to " + str(timeout_sec))
 
     lean_bin = current_folder + "lean/bin/"
+    lean_lib_path = current_folder + "lean/lib/lean/library/"
+    mathlib_path = current_folder + "mathlib/"
+    lean_path = f"{lean_lib_path}:{mathlib_path}"
     out_file_path = current_folder + out_file
     # Flags can be found at https://github.com/leanprover/lean/blob/ceacfa7445953cbc8860ddabc55407430a9ca5c3/src/shell/lean.cpp
-    compile_command = [lean_bin + "lean", file_to_compile, "-E", out_file_path, "--json", "--only-export=" + theorem_to_check]
+    compile_command = [lean_bin + "lean", file_to_compile, "-E", out_file_path,
+        "--json", "--only-export=" + theorem_to_check]
     check_command = [lean_bin + "leanchecker", out_file_path, theorem_to_check]
 
     logger.info("Compiling " + file_to_compile + " theorem: " + theorem_to_check + " ...")
     compile_returncode = -1
     try:
-        compile_result = subprocess.run(compile_command, stdout=subprocess.PIPE, timeout=timeout_sec, encoding="utf-8")
+        compile_result = subprocess.run(compile_command, stdout=subprocess.PIPE, timeout=timeout_sec,
+            encoding="utf-8", env={'LEAN_PATH': lean_path})
         compile_returncode = compile_result.returncode
         compile_output = compile_result.stdout
         timedout = False
