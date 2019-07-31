@@ -6,7 +6,7 @@ import os
 import subprocess
 import ast
 
-from poller import Poller, Grader_Panic 
+from poller import Poller, Grader_Panic
 
 PROVER_NAME = "LEA"
 
@@ -27,6 +27,11 @@ FILE_NAME_CHECK = 'check.lean'
 
 # List of error messages that should be ignored
 ERROR_MSG_IGNORE_LIST = ["failed to expand macro"]
+# List of keywords that are prohibited in the submission
+ILLEGAL_REGEXES = [
+    # No notation allowed, except local ones
+    {"regex": re.compile("(?<!local(.|\s))notation"), "keyword": "notation"}
+]
 
 THEOREM_RE = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
 
@@ -35,8 +40,6 @@ try:
 except Exception as e:
     logging.exception("Cannot load grader path from variables/grader_folder")
 GRADER_RUN = ["./grader_run.sh"]
-
-
 
 def make_check_entry(name, result):
     return [ { "name": name, "result": result } ]
@@ -53,18 +56,11 @@ def make_msg_where_string(filename, line, column):
 def make_msg_what_string(severity, text):
     return severity.upper() + ": " + text
 
-ILLEGAL_KEYWORDS = [
-    "notation",
-    ]
-
-def check_for_keyword(text, keyword):
-    return keyword in text
-
 def check_for_keywords(submission):
-    for keyword in ILLEGAL_KEYWORDS:
-        if check_for_keyword(submission, keyword):
-            return {"result": False, "messages": make_msg_entry('main','Illegal keyword "%s"' % keyword)}
-    return {"result": True, "messages": []}
+    for obj in ILLEGAL_REGEXES:
+        if obj["regex"].search(submission) is not None:
+            return {"legal": False, "messages": make_msg_entry("main", 'Illegal keyword "%s"' % obj["keyword"])}
+    return {"legal": True, "messages": []}
 
 def parse_compile_error(error, grader_path):
     # First remove the grader path from the error message
@@ -79,7 +75,7 @@ def parse_compile_error(error, grader_path):
                     make_msg_where_string(error_obj["file_name"], error_obj["pos_line"], error_obj["pos_col"]),
                     make_msg_what_string(error_obj["severity"], error_obj["text"])
                 )
-        except BaseException: pass 
+        except BaseException: pass
     return msgs
 
 def parse_axiom_output(output, theorem):
@@ -129,7 +125,6 @@ class Poller_Lean(Poller):
             output = lean_result.stdout
         except subprocess.TimeoutExpired:
             timedout = True
-
         if returncode == SUCCESS:
             summary["checks"] += make_check_entry(theorem, OK)
         else:
@@ -159,15 +154,14 @@ class Poller_Lean(Poller):
             timeout_socket, timeout_all, allow_sorry, check_file):
         logger = self.logger
         logger.info("Grading new submission " + str(submission_id))
-
         # check for key words
         res = check_for_keywords(submission)
-        
-        if not res["result"]:
-            summary = make_summary(False, res['messages'], [])            
+
+        if not res["legal"]:
+            summary = make_summary(False, res["messages"], [])
         else:
             logger.debug("Copying Lean files to grader folder...")
-            grader_path = GRADER_FOLDER + "/" + version + "/"
+            grader_path = f"{GRADER_FOLDER}/{version}/"
             for name, content in ((FILE_NAME_DEFS, defs), (FILE_NAME_SUBMISSION, submission), (FILE_NAME_CHECK, check)):
                 logger.debug("writing file '{}{}'!".format(grader_path, name))
                 text_file = codecs.open(grader_path + name, "w", "utf-8")
