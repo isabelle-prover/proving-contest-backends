@@ -24,22 +24,22 @@ echo "======================================================"
 echo "Installing Lean $lean_version" 
 if [ -d "$install_folder/$lean_folder" ]
 then
-	echo "Lean already exists at $install_folder/$lean_folder"
+    echo "Lean already exists at $install_folder/$lean_folder"
 else
     echo "Downloading Lean..."
-	wget -N "$lean_source"
+    wget -N "$lean_source"
     echo "Done downloading Lean. Exctracing Lean..."
-	tar -xzf "$lean_file" -C "$install_folder" && mv "$install_folder/lean-$lean_version-linux" "$install_folder/$lean_folder"
+    tar -xzf "$lean_file" -C "$install_folder" && mv "$install_folder/lean-$lean_version-linux" "$install_folder/$lean_folder"
     echo "Done exctracing Lean."
 fi
 if [ -d "$install_folder/$mathlib_folder" ]
 then
-	echo "Mathlib already exists at $install_folder/$mathlib_folder"
+    echo "Mathlib already exists at $install_folder/$mathlib_folder"
 else
     echo "Downloading mathlib..."
-	wget -N "$mathlib_source"
+    wget -N "$mathlib_source"
     echo "Done downloading mathlib. Exctracing mathlib files..."
-	tar -xzf "$mathlib_file" -C "$install_folder" && mv "$install_folder/src" "$install_folder/$mathlib_folder"
+    tar -xzf "$mathlib_file" -C "$install_folder" && mv "$install_folder/src" "$install_folder/$mathlib_folder"
     echo "Done extracting mathlib."
 fi
 cd "$current_folder"

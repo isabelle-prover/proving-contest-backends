@@ -12,7 +12,7 @@ class TestPoller_Lean(unittest.TestCase):
     def readFile(self, path):
         with open(test_folder + path, "r", encoding="utf-8") as file: return file.read()
 
-    def runTest(self, path, expected, timeout_all=60000, allow_sorry=None, check_file=None):
+    def runTest(self, path, expected, timeout_all=60, allow_sorry=None, check_file=None):
         defs = self.readFile(path + "/defs.lean")
         sub = self.readFile(path + "/submission.lean")
         check = self.readFile(path + "/check.lean")
