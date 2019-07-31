@@ -1,8 +1,8 @@
 # Setup
 
 ## First Time
-1. Run `preparejudge.sh`. The script installs a grader compatible with the Lean version specified in `variables/lean_version` and pre-compiled mathlib version specified in `variables/mathlib_version` to the path specified in `variables/grader_folder/${lean_version}`.
-3. Before running the poller, you need to copy `config.tmp` to `config`.
+1. Run `preparejudge.sh`. The script installs a grader compatible with the Lean version specified in `variables/lean_version` and pre-compiled mathlib version specified in `variables/mathlib_version` to the path specified in `variables/grader_folder`.
+2. Before running the poller, you need to copy `config.tmp` to `config`.
 Then insert the correct URL for the frontend server and your access token.
 
 ## Start the judge

@@ -15,15 +15,9 @@ mathlib_folder="mathlib"
 install_folder=`cat variables/grader_folder`/$lean_version
 current_folder=`pwd`
 
-if [ $EUID != 0 ]; then
-    # Ask for sudo rights
-    sudo "$0" "$@"
-    exit $?
-fi
-
-mkdir -p "$install_folder"
-chown $USER "$install_folder"
-chmod 777 "$install_folder"
+sudo mkdir -p "$install_folder"
+sudo chown $USER "$install_folder"
+sudo chmod 777 "$install_folder"
 
 cd /tmp
 echo "======================================================"

@@ -79,6 +79,10 @@ class TestPoller_Lean(unittest.TestCase):
         expected = {'submission_is_valid': False, 'messages': [{'where': 'main', 'what': 'Illegal keyword "notation"'}], 'checks': [], 'log': ''}
         self.runTest("notation_cheat", expected)
 
+    def test_local_notation(self):
+        expected = {'submission_is_valid': False, 'messages': [{'where': 'check.lean at line 3, column 32', 'what': 'ERROR: type mismatch, term\n  soundness_bug\nhas type\n  true\nbut is expected to have type\n  false'}], 'checks': [{'name': 'you_broke_it', 'result': 'error'}], 'log': ''}
+        self.runTest("local_notation", expected)
+
     def test_mathlib(self):
         expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}, {'name': 'main2', 'result': 'ok'}], 'log': ''}
         self.runTest("mathlib", expected)

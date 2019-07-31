@@ -27,6 +27,11 @@ FILE_NAME_CHECK = 'check.lean'
 
 # List of error messages that should be ignored
 ERROR_MSG_IGNORE_LIST = ["failed to expand macro"]
+# List of keywords that are prohibited in the submission
+ILLEGAL_REGEXES = [
+    # No notation allowed, except local ones
+    {"regex": re.compile("(?<!local(.|\s))notation"), "keyword": "notation"}
+]
 
 THEOREM_RE = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
 
@@ -35,8 +40,6 @@ try:
 except Exception as e:
     logging.exception("Cannot load grader path from variables/grader_folder")
 GRADER_RUN = ["./grader_run.sh"]
-
-
 
 def make_check_entry(name, result):
     return [ { "name": name, "result": result } ]
@@ -53,18 +56,11 @@ def make_msg_where_string(filename, line, column):
 def make_msg_what_string(severity, text):
     return severity.upper() + ": " + text
 
-ILLEGAL_KEYWORDS = [
-    "notation",
-    ]
-
-def check_for_keyword(text, keyword):
-    return keyword in text
-
 def check_for_keywords(submission):
-    for keyword in ILLEGAL_KEYWORDS:
-        if check_for_keyword(submission, keyword):
-            return {"result": False, "messages": make_msg_entry('main','Illegal keyword "%s"' % keyword)}
-    return {"result": True, "messages": []}
+    for obj in ILLEGAL_REGEXES:
+        if obj["regex"].search(submission) is not None:
+            return {"legal": False, "messages": make_msg_entry("main", 'Illegal keyword "%s"' % obj["keyword"])}
+    return {"legal": True, "messages": []}
 
 def parse_compile_error(error, grader_path):
     # First remove the grader path from the error message
@@ -161,8 +157,8 @@ class Poller_Lean(Poller):
         # check for key words
         res = check_for_keywords(submission)
 
-        if not res["result"]:
-            summary = make_summary(False, res['messages'], [])
+        if not res["legal"]:
+            summary = make_summary(False, res["messages"], [])
         else:
             logger.debug("Copying Lean files to grader folder...")
             grader_path = f"{GRADER_FOLDER}/{version}/"
