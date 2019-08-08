@@ -40,13 +40,26 @@ let add_then_exec stmt =
       default_add_opts,
       stmt
     )) in
-  let sids = List.filter_map (function
-    | SP.Added (sid, _, `NewTip) -> Some sid
-    | _ -> None) add_ans in
-  let last_tip = List.fold_left stateid_max Stateid.dummy sids in
-  let exec_ans = SP.exec_cmd (SP.Exec last_tip) in
-  let res = result_of_ans exec_ans in
-  sids, res
+  let sids, errors = List.partition_map (function
+    | SP.Added (sid, _, `NewTip) -> `Left sid
+    | CoqExn SP.ExnInfo.{ pp; _ } -> `Right (Pp.string_of_ppcmds pp)
+    | _ -> `Drop
+  ) add_ans in
+  if not (List.is_empty errors) then
+    sids,
+    Error (
+      "Error(s) in checks file:\n" ^
+      (String.concat "\n" errors) ^
+      "\nPlease report"
+    )
+  else if List.is_empty sids then
+    sids, Error ("Unknown error in checks file... Please report")
+  else begin
+    let last_tip = List.fold_left stateid_max Stateid.dummy sids in
+    let exec_ans = SP.exec_cmd (SP.Exec last_tip) in
+    let res = result_of_ans exec_ans in
+    sids, res
+  end
 
 let get_assumptions name =
   SP.exec_cmd (Query (default_query_opts, Assumptions name))
