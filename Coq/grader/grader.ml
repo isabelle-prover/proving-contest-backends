@@ -236,35 +236,41 @@ let check_submission_dir dir =
     Error (`Other "Unexpected error: incorrect submission directory. Please report.")
   )
 
-let spawn ~workdir (cmd: string) =
-  let pid = Unix.fork () in
-  if pid = 0 then (
-    Unix.setsid () |> ignore;
-    Unix.chdir workdir;
-    Unix.execv
-      "/bin/sh"
-      [| "/bin/sh"; "-c"; cmd |]
-  ) else pid
-
-let spawn_lwt ~timeout ~timeout_err ~workdir cmd =
+let spawn_lwt ~timeout (cmd: string) =
   let open Lwt.Infix in
-  let child_pid = spawn ~workdir cmd in
-  Lwt.pick [
-    (Lwt_unix.sleep (float timeout) >>= fun () ->
-     Unix.kill child_pid Sys.sigkill;
-     Lwt.return (Error timeout_err));
-    (Lwt_unix.waitpid [] child_pid >>= fun (_,status) -> Lwt.return (Ok status));
-  ]
-
-let compile_submission ~timeout workdir =
-  let open Lwt_result.Infix in
-  let compile f =
-    spawn_lwt ~workdir ~timeout
-      ~timeout_err:(Printf.sprintf "Timeout after %ds: %s" timeout f)
-      (Printf.sprintf "coqc -R . %s '%s'" toplevel_namespace f) >>= function
-    | Lwt_unix.WEXITED 0 -> Lwt_result.return ()
-    | _ -> Lwt_result.fail ("Non-zero exit code when compiling " ^ f)
+  let read_stderr, write_stderr = Lwt_unix.pipe_in ()
+  and read_stdout, write_stdout = Lwt_unix.pipe_in () in
+  let ret_code = Lwt_process.exec ~timeout:(float_of_int timeout)
+      ~stdin:`Close
+      ~stdout:(`FD_move write_stdout) ~stderr:(`FD_move write_stderr)
+      (Lwt_process.shell cmd)
+  and stdout = Lwt_io.read (Lwt_io.of_fd ~mode:Lwt_io.input read_stdout)
+  and stderr = Lwt_io.read (Lwt_io.of_fd ~mode:Lwt_io.input read_stderr)
   in
+  ret_code >>= (fun ret_code ->
+    stdout >>= (fun stdout ->
+      stderr >>= (fun stderr -> Lwt.return (ret_code, stdout, stderr))))
+
+let compile_submission ~timeout () =
+  let open Lwt.Infix in
+  let compile f =
+    spawn_lwt ~timeout
+      (Printf.sprintf "coqc -R . %s '%s'" toplevel_namespace f) >>=
+    function (ret_code, _stdout, stderr) ->
+    match ret_code with
+    | Lwt_unix.WEXITED 0 -> Lwt_result.return ()
+    | _ -> Lwt_result.fail (
+      let ret_s, ret_d = match ret_code with
+        | Lwt_unix.WEXITED n -> "WEXITED", n
+        | Lwt_unix.WSIGNALED n -> "WSIGNALED", n
+        | Lwt_unix.WSTOPPED n -> "WSTOPPED", n
+      in
+      Printf.sprintf
+        "Non-zero exit code (%s %d) when compiling %s\n\n%s"
+        ret_s ret_d f stderr
+    )
+  in
+  let open Lwt_result.Infix in
   Lwt_main.run @@ begin
     compile defs_f >>= fun () ->
     compile submission_f
@@ -332,7 +338,8 @@ let driver
   write_result ~file:(result_file in_dir) @@ begin
     (* Build the submission *)
     check_submission_dir in_dir >>= fun () ->
-    compile_submission ~timeout in_dir >>= fun () ->
+    Unix.chdir in_dir;
+    compile_submission ~timeout () >>= fun () ->
     let in_file = checks in_dir in
 
     (* Requires for the check file document *)
