@@ -266,8 +266,7 @@ let compile_submission ~timeout () =
         | Lwt_unix.WSTOPPED n -> "WSTOPPED", n
       in
       Printf.sprintf
-        "Non-zero exit code (%s %d) when compiling %s:\n\n%s"
-        ret_s ret_d f stderr
+        "Non-zero exit code (%s %d):\n\n%s" ret_s ret_d stderr
     )
   in
   let open Lwt_result.Infix in
