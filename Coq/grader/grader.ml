@@ -126,6 +126,9 @@ let check_assumptions (a: SA.t) =
       "Forbidden axiom", Names.Constant.to_string c
     | Printer.Positive mind ->
       "Relies on possibly unsound inductive", Names.MutInd.to_string mind
+    | Printer.TemplatePolymorphic mind ->
+      "Relies on possibly unsound template polymorphic inductive",
+      Names.MutInd.to_string mind
     | Printer.Guarded c ->
       "Relies on possibly unsound (co)fixpoint", Names.Constant.to_string c
   in
