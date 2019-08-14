@@ -8,11 +8,12 @@ authors: [
 ]
 depends: [
   "dune"
-  "coq" {= "8.10+dune"}
-  "coq-serapi"
+  "coq" {= "8.10+fix-template"}
+  "coq-serapi" {= "dev"}
   "containers"
   "lwt"
 ]
 pin-depends: [
-  [ "coq-serapi.dev" "git+https://github.com/ejgallego/coq-serapi#v8.10" ]
+  [ "coq-serapi.dev" "git+https://github.com/Armael/coq-serapi#v8.10+fix-template" ]
+  [ "coq.8.10+fix-template" "git+https://github.com/Armael/coq#backport-9918" ]
 ]
