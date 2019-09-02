@@ -15,9 +15,13 @@ import os
 
 LOG_LEVEL = logging.INFO
 
-axiom_re = re.compile("^.*axiom\s+([^\s:({[⦃⟦]+).*")
+axiom_re = re.compile("^axiom (.*?(?= :)).*")
 out_file = "check.out"
-
+TRUSTED_AXIOMS = [
+    'axiom propext : Π {a b : Prop}, (a <-> b) -> a = b',
+    'axiom classical.choice : Π {α : Sort u}, nonempty α -> α',
+    'axiom quot.sound : Π {α : Sort u}, Π {r : α -> α -> Prop}, Π {a b : α}, r a b -> quot.mk r a = quot.mk r b'
+]
 
 def print_utf8(s):
     sys.stdout.buffer.write(str(s).encode('utf8'))
@@ -91,13 +95,12 @@ if __name__ == "__main__":
             unknown_axiom = None
             for line in checker_result.stdout.splitlines():
                 match = axiom_re.match(line)
-                if match and match[1] not in ["propext", "classical.choice", "quot.sound"]:
+                if match and line not in TRUSTED_AXIOMS:
                     unknown_axiom = create_axiom_output(match[1])
                     break
         except subprocess.TimeoutExpired:
             logger.info("Checker timeout after %s seconds" % timeout_sec)
             timedout = True
-
         if timedout:
             returncode = TIMEOUT
         elif unknown_axiom != None:

@@ -35,6 +35,12 @@ class TestPoller_Lean(unittest.TestCase):
         expected = {'submission_is_valid': True, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'ok_with_axioms'}], 'log': ''}
         self.runTest("axiom", expected)
 
+    def test_axiom2(self):
+        # Optimally, this should say 'quot.sound : a', but the leanchecker cuts of everything following the colon
+        expectedMsg = [{'where': 'main', 'what': "WARNING: Unknown axiom 'quot.sound' used to prove theorem 'main'."}]
+        expected = {'submission_is_valid': True, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'ok_with_axioms'}], 'log': ''}
+        self.runTest("axiom2", expected)
+
     def test_axiom_ok(self):
         expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main_lemma', 'result': 'ok'}], 'log': ''}
         self.runTest("axiom_ok", expected)
@@ -76,7 +82,7 @@ class TestPoller_Lean(unittest.TestCase):
         self.runTest("multiple_ok", expected)
 
     def test_notation_cheat(self):
-        expected = {'submission_is_valid': False, 'messages': [{'where': 'main', 'what': 'Illegal keyword "notation"'}], 'checks': [], 'log': ''}
+        expected = {'submission_is_valid': False, 'messages': [{'where': 'check.lean at line 4, column 23', 'what': 'ERROR: ambiguous overload, possible interpretations\n  0 = 0\n  false\nAdditional information:\ncheck.lean:4:23: context: switched to basic overload resolution where arguments are elaborated without any information about the expected type because expected type was not available'}], 'checks': [{'name': 'you_broke_it', 'result': 'error'}], 'log': ''}
         self.runTest("notation_cheat", expected)
 
     def test_local_notation(self):
