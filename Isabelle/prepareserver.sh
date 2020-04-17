@@ -10,7 +10,7 @@ sessions=`cat config | python -c 'import json,sys;obj=json.load(sys.stdin);print
 echo "sessions = $sessions"
 
 
-settingsfile="settings$isabelleversion"
+settingsfile="$isabelleversion/settings"
 graderfolder=/var/lib/isabelle-grader/$isabelleversion
 mkdir -p $graderfolder
 
@@ -91,8 +91,8 @@ cp -R startserverscript $graderfolder
 
 echo "======================================================"
 echo "prepare checking files in folder: $graderfolder"
-cp OK_Test.thy $graderfolder
-cp Defs0.thy $graderfolder
+cp "$isabelleversion/OK_Test.thy" $graderfolder
+cp "$isabelleversion/Defs0.thy" $graderfolder
 
 
 
