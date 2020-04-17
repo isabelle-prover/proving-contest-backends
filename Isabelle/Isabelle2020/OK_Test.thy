@@ -30,7 +30,7 @@ val _ =
 ML \<open>
 val get_oracles = fn x => Thm_Deps.all_oracles [x]
 
-val contains_sorry = Thm_Deps.has_skip_proof
+val contains_sorry = fn x => Thm_Deps.has_skip_proof [x]
 
 fun report_sorry ctxt =
   if Context_Position.is_visible ctxt then
@@ -55,6 +55,20 @@ fun score namedthms =
        writeln ("grading:" ^ spit sn)
     end
 
+fun score_thms namedthms =
+    let
+      val scores = map (Thm_Deps.has_skip_proof o snd) namedthms
+      val names = map fst namedthms
+      val sn = ListPair.zip (scores,names)
+      fun spit [] = ""
+        | spit ((s,n)::sns) = let
+            val str = n ^ ":" ^ (if s then "failed" else "passed")
+          in
+            "\n" ^ str ^ spit sns
+        end 
+    in
+       writeln ("grading:" ^ spit sn)
+    end
 
 \<close>
 
