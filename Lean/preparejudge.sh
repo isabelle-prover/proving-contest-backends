@@ -49,4 +49,4 @@ echo "Mathlib-$mathlib_version installed at $install_folder/$mathlib_folder"
 echo "======================================================"
 echo "copying grader file to grading folder $install_folder"
 cp "grader.py" $install_folder
- 
+echo "DONE!"

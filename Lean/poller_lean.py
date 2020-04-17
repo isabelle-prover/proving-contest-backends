@@ -30,7 +30,8 @@ ERROR_MSG_IGNORE_LIST = ["failed to expand macro"]
 # List of keywords that are prohibited in the submission
 ILLEGAL_REGEXES = [
     # No notation allowed, except local ones
-    {"regex": re.compile("(?<!local(.|\s))notation"), "keyword": "notation"}
+    # This is disabled again because it can easily be outsmarted using Lean metaprogramming
+    #  {"regex": re.compile("(?<!local(.|\s))notation"), "keyword": "notation"}
 ]
 
 THEOREM_RE = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
