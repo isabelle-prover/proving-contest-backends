@@ -5,6 +5,6 @@ port=$2
 
 tar -xzf "$isabelleversion".tar.gz
 
-cp -R /var/lib/isabelle-grader/.isabelle .
+cp -R /var/lib/isabelle-grader/$isabelleversion/.isabelle .
 
 $isabelleversion/bin/isabelle server -n "max" -p $2
