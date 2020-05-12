@@ -7,6 +7,7 @@ authors: [
   "Armaël Guéneau <>"
 ]
 depends: [
+  "ocaml" {= "4.07.1" }
   "dune"
   "coq" {= "8.10+fix-template"}
   "coq-serapi" {= "dev"}
