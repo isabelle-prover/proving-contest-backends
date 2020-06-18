@@ -97,5 +97,14 @@ class TestPoller_Lean(unittest.TestCase):
         expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}, {'name': 'main2', 'result': 'ok'}], 'log': ''}
         self.runTest("mathlib", expected)
 
+    def test_noncomputable(self):
+        expectedMsg = [{'where': 'check.lean at line 4, column 4', 'what': "ERROR: definition 'computable' is noncomputable, it depends on 'my_int_of_nat'"}]
+        expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'correctness', 'result': 'error'}], 'log': ''}
+        self.runTest("noncomputable", expected)
+
+    def test_computable(self):
+        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'correctness', 'result': 'ok'}], 'log': ''}
+        self.runTest("computable", expected)
+
 if __name__ == '__main__':
     unittest.main()
