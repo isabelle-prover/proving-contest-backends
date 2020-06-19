@@ -2,6 +2,7 @@
 
 ## First Time
 1. Run `preparejudge.sh`. The script installs a grader compatible with the Lean version specified in `variables/lean_version` and pre-compiled mathlib version specified in `variables/mathlib_revision` to the path specified in `variables/grader_folder`.
+  - The prover name the poller is listening to is specified in `variables/prover_name`.
   - By default, Lean will be downloaded from https://github.com/leanprover-community/lean/releases/download/ and mathlib from https://oleanstorage.azureedge.net/mathlib
   - Both come with pre-compiled theory files (`*.olean`). Make sure the `*.olean` files are compiled with the same version as specified in `lean_version`; for otherwise, they will not be picked up by the grader and compilation will be horribly slow (and hence time out).
 2. Before running the poller, you need to copy `config.tmp` to `config`.
