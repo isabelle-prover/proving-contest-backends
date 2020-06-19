@@ -37,7 +37,7 @@ THEOREM_RE = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
 try:
     PROVER_NAME = open("variables/prover_name", "r").read().splitlines()[0]
 except Exception as e:
-    logging.exception("Cannot load grader path from variables/grader_folder")
+    logging.exception("Cannot load prover name from variables/prover_name")
 
 try:
     GRADER_FOLDER = open("variables/grader_folder", "r").read().splitlines()[0]
