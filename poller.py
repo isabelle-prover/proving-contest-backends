@@ -156,6 +156,7 @@ class Poller(ABC):
                                 logger.debug(key + " : " + data[key])
                         else:
                             response.raise_for_status()
+                        logger.info("DONE")
 
                 else:
                     try:
