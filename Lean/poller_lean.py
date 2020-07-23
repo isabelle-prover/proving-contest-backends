@@ -8,8 +8,6 @@ import ast
 
 from poller import Poller, Grader_Panic
 
-PROVER_NAME = "LEA"
-
 # Codes returned by the grader
 SUCCESS = 0 # Successfully compiled and checked
 COMPILATION_ERROR = 1
@@ -35,6 +33,11 @@ ILLEGAL_REGEXES = [
 ]
 
 THEOREM_RE = re.compile("^.*(lemma|theorem)\s+([^\s:({[⦃⟦]+).*")
+
+try:
+    PROVER_NAME = open("variables/prover_name", "r").read().splitlines()[0]
+except Exception as e:
+    logging.exception("Cannot load prover name from variables/prover_name")
 
 try:
     GRADER_FOLDER = open("variables/grader_folder", "r").read().splitlines()[0]

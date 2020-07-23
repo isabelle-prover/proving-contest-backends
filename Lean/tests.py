@@ -8,16 +8,20 @@ class TestPoller_Lean(unittest.TestCase):
     def setUp(self):
         self.poller = Poller_Lean()
         self.maxDiff = None
+        self.leanVersion = self.readFile("variables/lean_version").splitlines()[0]
 
     def readFile(self, path):
-        with open(test_folder + path, "r", encoding="utf-8") as file: return file.read()
+        with open(path, "r", encoding="utf-8") as file: return file.read()
+
+    def readTest(self, path):
+        return self.readFile(test_folder + path)
 
     def runTest(self, path, expected, timeout_all=60, allow_sorry=None, check_file=None):
-        defs = self.readFile(path + "/defs.lean")
-        sub = self.readFile(path + "/submission.lean")
-        check = self.readFile(path + "/check.lean")
+        defs = self.readTest(path + "/defs.lean")
+        sub = self.readTest(path + "/submission.lean")
+        check = self.readTest(path + "/check.lean")
         result = self.poller.grade_submission(0, 0, defs, sub, check, 0,
-            "3.4.2", 60, timeout_all, allow_sorry, check_file)
+            self.leanVersion, 60, timeout_all, allow_sorry, check_file)
         result['messages'] = sorted(list(m.items()) for m in result['messages'])
         expected['messages'] = sorted(list(m.items()) for m in expected['messages'])
         self.assertDictEqual(expected, result)
@@ -36,8 +40,8 @@ class TestPoller_Lean(unittest.TestCase):
         self.runTest("axiom", expected)
 
     def test_axiom2(self):
-        # Optimally, this should say 'quot.sound : a', but the leanchecker cuts of everything following the colon
-        expectedMsg = [{'where': 'main', 'what': "WARNING: Unknown axiom 'quot.sound' used to prove theorem 'main'."}]
+        #  Optimally, this should say '«quot.sound : a»', but the leanchecker cuts of everything following the colon
+        expectedMsg = [{'where': 'main', 'what': "WARNING: Unknown axiom '«quot.sound»' used to prove theorem 'main'."}]
         expected = {'submission_is_valid': True, 'messages': expectedMsg, 'checks': [{'name': 'main', 'result': 'ok_with_axioms'}], 'log': ''}
         self.runTest("axiom2", expected)
 
@@ -55,7 +59,7 @@ class TestPoller_Lean(unittest.TestCase):
         self.runTest("timeout", expected, 0)
 
     def test_parse_error(self):
-        expected_msg = [{'where': 'submission.lean at line 1, column 0', 'what': "ERROR: file 'lamma' not found in the LEAN_PATH"}, {'where': 'submission.lean at line 1, column 0', 'what': "ERROR: file 'my_proof' not found in the LEAN_PATH"}, {'where': 'submission.lean at line 1, column 0', 'what': 'ERROR: invalid import: lamma\ncould not resolve import: lamma'}, {'where': 'submission.lean at line 1, column 0', 'what': 'ERROR: invalid import: my_proof\ncould not resolve import: my_proof'}, {'where': 'submission.lean at line 3, column 15', 'what': 'ERROR: command expected'}, {'where': 'check.lean at line 1, column 0', 'what': 'ERROR: invalid import: lamma\ncould not resolve import: lamma'}, {'where': 'check.lean at line 1, column 0', 'what': 'ERROR: invalid import: my_proof\ncould not resolve import: my_proof'}, {'where': 'check.lean at line 3, column 26', 'what': "ERROR: unknown identifier 'my_proof'"}, {'where': 'check.lean at line 3, column 0', 'what': "WARNING: declaration 'main' uses sorry"}, {'where': '<unknown> at line 1, column 1', 'what': 'ERROR: could not resolve import: my_proof'}]
+        expected_msg = [{'where': 'check.lean at line 3, column 0', 'what': "WARNING: declaration 'main' uses sorry"}, {'where': 'check.lean at line 3, column 26', 'what': "ERROR: unknown identifier 'my_proof'"}, {'where': 'submission.lean at line 3, column 0', 'what': 'ERROR: command expected'}]
         expected = {'submission_is_valid': False, 'messages': expected_msg, 'checks': [{'name': 'main', 'result': 'error'}], 'log': ''}
         self.runTest("parse_error", expected)
 
@@ -92,6 +96,15 @@ class TestPoller_Lean(unittest.TestCase):
     def test_mathlib(self):
         expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'main', 'result': 'ok'}, {'name': 'main2', 'result': 'ok'}], 'log': ''}
         self.runTest("mathlib", expected)
+
+    def test_noncomputable(self):
+        expectedMsg = [{'where': 'check.lean at line 4, column 4', 'what': "ERROR: definition 'computable' is noncomputable, it depends on 'my_int_of_nat'"}]
+        expected = {'submission_is_valid': False, 'messages': expectedMsg, 'checks': [{'name': 'correctness', 'result': 'error'}], 'log': ''}
+        self.runTest("noncomputable", expected)
+
+    def test_computable(self):
+        expected = {'submission_is_valid': True, 'messages': [], 'checks': [{'name': 'correctness', 'result': 'ok'}], 'log': ''}
+        self.runTest("computable", expected)
 
 if __name__ == '__main__':
     unittest.main()
