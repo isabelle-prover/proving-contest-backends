@@ -36,7 +36,7 @@ class Poller(ABC):
 
         if cnf["logger-level"] == "INFO":
             logger.setLevel(logging.INFO)
-        else if cnf["logger-level"] == "DEBUG":
+        elif cnf["logger-level"] == "DEBUG":
             logger.setLevel(logging.DEBUG)
 
         if self.config["filter_subm_lambda"] and self.config["filter_subm_days"]
