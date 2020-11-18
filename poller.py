@@ -13,6 +13,7 @@ class Grader_Panic(Exception):
 
 class Poller(ABC):
     pollurl_template = "pollsubmission/?itp={}"
+    timefilter_template = "&itp={}"
     puturl = "putresult/"
 
     def __init__(self):
@@ -32,6 +33,18 @@ class Poller(ABC):
         config = open("config", "r")
         cnf = json.loads(config.read())
         config.close()
+
+        if cnf["logger-level"] == "INFO":
+            logger.setLevel(logging.INFO)
+        else if cnf["logger-level"] == "DEBUG":
+            logger.setLevel(logging.DEBUG)
+
+        if self.config["filter_subm_lambda"] and self.config["filter_subm_days"]
+             and self.config["filter_subm_lambda"]>1:
+            self.filter_subm_lambda = int(self.config["filter_subm_lambda"])
+            self.filter_subm_days = int(self.config["filter_subm_days"])
+        else: 
+            self.filter_subm_lambda = 1
 
         self.token = cnf["token"]
         self.baseurl = cnf["baseurl"]
@@ -91,6 +104,8 @@ class Poller(ABC):
     def run(self):
         logger = self.logger
         logger.info("entering the polling loop")
+        
+        counter = 0 # a counter that enables
         while True:
             time.sleep(2)
             grader_msg = ""
@@ -99,7 +114,18 @@ class Poller(ABC):
             try:
                 logger.debug("poll from server")
 
-                url = self.baseurl + self.pollurl
+                # when counter is not 0 poll only submissions younger than self.filter_subm_days
+                if counter>0: 
+                      logger.INFO("poll only young")
+                      num_days_filter = Poller.timefilter_template.format(self.filter_subm_days)
+                # only one out of self.filter_subm_lambda times poll all submissions
+                else:
+                      logger.INFO("poll all")
+                      num_days_filter=""
+
+                counter = (counter+1)%self.filter_subm_lambda
+
+                url = self.baseurl + self.pollurl + num_days_filter
 
                 # send get request
                 response = requests.get(url, verify=True, headers=self.headers)
