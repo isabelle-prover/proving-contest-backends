@@ -1,1 +1,1 @@
-{"pwd": "ZZZ", "logger-level": "INFO", "token": "YYY", "baseurl": "http://127.0.0.1:8000/restapi/", "ITPshort": "I19", "pythonversion": "python3.6", "port": 4711, "ITP": "Isabelle2019", "sessions": ["Pure", "HOL"]}
+{"filter_subm_lambda": 5, "filter_subm_days": 1, "pwd": "ZZZ", "logger-level": "INFO", "token": "YYY", "baseurl": "http://127.0.0.1:8000/restapi/", "ITPshort": "I19", "pythonversion": "python3.6", "port": 4711, "ITP": "Isabelle2019", "sessions": ["Pure", "HOL"]}

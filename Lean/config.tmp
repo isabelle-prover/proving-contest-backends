@@ -1,1 +1,1 @@
-{"logger-level": "DEBUG", "token": "", "baseurl": "http://vmnipkow14.in.tum.de/restapi/"}
+{"filter_subm_lambda": 5, "filter_subm_days": 1, "logger-level": "INFO", "token": "", "baseurl": "http://vmnipkow14.in.tum.de/restapi/"}
