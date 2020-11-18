@@ -39,7 +39,7 @@ class Poller(ABC):
         elif cnf["logger-level"] == "DEBUG":
             logger.setLevel(logging.DEBUG)
 
-        if (cnf["filter_subm_lambda"] and cnf["filter_subm_days"]
+        if ("filter_subm_lambda" in cnf and "filter_subm_days" in cnf
              and cnf["filter_subm_lambda"]>1):
             self.filter_subm_lambda = int(cnf["filter_subm_lambda"])
             self.filter_subm_days = int(cnf["filter_subm_days"])
