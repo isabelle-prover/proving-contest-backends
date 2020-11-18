@@ -116,11 +116,11 @@ class Poller(ABC):
 
                 # when counter is not 0 poll only submissions younger than self.filter_subm_days
                 if counter>0: 
-                      logger.info("poll only young")
+                      logger.debug("poll only young")
                       num_days_filter = Poller.timefilter_template.format(self.filter_subm_days)
                 # only one out of self.filter_subm_lambda times poll all submissions
                 else:
-                      logger.info("poll all")
+                      logger.debug("poll all")
                       num_days_filter=""
 
                 counter = (counter+1)%self.filter_subm_lambda
