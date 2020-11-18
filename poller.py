@@ -13,7 +13,7 @@ class Grader_Panic(Exception):
 
 class Poller(ABC):
     pollurl_template = "pollsubmission/?itp={}"
-    timefilter_template = "&itp={}"
+    timefilter_template = "&num_days={}"
     puturl = "putresult/"
 
     def __init__(self):
