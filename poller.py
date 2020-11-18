@@ -39,8 +39,8 @@ class Poller(ABC):
         elif cnf["logger-level"] == "DEBUG":
             logger.setLevel(logging.DEBUG)
 
-        if self.config["filter_subm_lambda"] and self.config["filter_subm_days"]:
-             and self.config["filter_subm_lambda"]>1:
+        if (self.config["filter_subm_lambda"] and self.config["filter_subm_days"]
+             and self.config["filter_subm_lambda"]>1):
             self.filter_subm_lambda = int(self.config["filter_subm_lambda"])
             self.filter_subm_days = int(self.config["filter_subm_days"])
         else: 
