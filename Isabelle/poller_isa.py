@@ -22,8 +22,8 @@ CHECKING_TIMEOUT = 8
 # (keyword, is_surrounded_by_whitespace)
 ILLEGAL_KEYWORDS = [
     ("axiomatization", True),
-    ("instance", True),
-    ("instantiation", True),
+    #("instance", True),
+    #("instantiation", True),
     ("overloading", True),
     ("code_printing", True),
     # XXX Can remove after checking in ML
