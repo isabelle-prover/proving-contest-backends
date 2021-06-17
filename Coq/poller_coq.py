@@ -82,8 +82,9 @@ if __name__ == "__main__":
             loglevel = logging.DEBUG
 
     # Initialize logging
-    logging.basicConfig(filename="poller.log",
-                        filemode='a',
+    logging.basicConfig(handlers=[logging.FileHandler(filename="poller.log",
+                                  encoding='utf-8',
+                                  mode='a')],
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%m-%d %H:%M:%S',
                         level=loglevel)
