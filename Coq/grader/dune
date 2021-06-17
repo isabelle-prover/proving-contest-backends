@@ -1,7 +1,7 @@
 (executable
   (name grader)
   (link_flags -linkall)
-  (libraries coq-serapi.serlib coq-serapi.serapi_v8_10 coq-serapi.sertop_v8_10
+  (libraries coq-serapi.serlib coq-serapi.serapi_v8_13 coq-serapi.sertop_v8_12
              lwt lwt.unix containers yojson ppx_deriving_yojson.runtime num)
   (preprocess (pps ppx_sexp_conv ppx_deriving_yojson)))
 

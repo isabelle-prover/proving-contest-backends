@@ -9,12 +9,8 @@ authors: [
 depends: [
   "ocaml" {= "4.07.1" }
   "dune"
-  "coq" {= "8.10+fix-template"}
-  "coq-serapi" {= "dev"}
+  "coq" {= "8.13.2"}
+  "coq-serapi" {= "8.13.0+0.13.0"}
   "containers"
   "lwt"
-]
-pin-depends: [
-  [ "coq-serapi.dev" "git+https://github.com/Armael/coq-serapi#v8.10+fix-template" ]
-  [ "coq.8.10+fix-template" "git+https://github.com/Armael/coq#backport-9918" ]
 ]

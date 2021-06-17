@@ -1,7 +1,7 @@
 open Containers
 open Serapi_utils
-module SP = Serapi_protocol
-module SA = Serapi_assumptions
+module SP = Serapi.Serapi_protocol
+module SA = Serapi.Serapi_assumptions
 
 let warn ppf =
   Format.eprintf ("Warn: " ^^ ppf)
@@ -17,7 +17,7 @@ let default_add_opts =
 
 let default_query_opts =
   (* (!) TODO: do the same for default_add_opts? *)
-  Sertop_ser.query_opt_of_sexp Sexplib.Sexp.unit
+  Sertop.Sertop_ser.query_opt_of_sexp Sexplib.Sexp.unit
 
 let stateid_max a b =
   if Stateid.compare a b = -1 then b else a
@@ -40,7 +40,7 @@ let add_then_exec stmt =
       default_add_opts,
       stmt
     )) in
-  let sids, errors = List.partition_map (function
+  let sids, errors = List.partition_filter_map (function
     | SP.Added (sid, _, `NewTip) -> `Left sid
     | CoqExn SP.ExnInfo.{ pp; _ } -> `Right (Pp.string_of_ppcmds pp)
     | _ -> `Drop
@@ -69,7 +69,7 @@ let get_assumptions name =
         | SP.CoqAssumptions a -> Some a
         | _ -> None) objs
     | _ -> None)
-  |> Option.get_exn
+  |> CCOpt.get_exn_or "get_assumptions"
 
 include struct
   open Sexplib.Conv
@@ -114,10 +114,17 @@ let pp_command_result ppf = function
 
 let check_refl thm =
   add_then_exec ("Goal " ^ thm ^ ". reflexivity. Qed.")
-  |> Pair.map2 (function
+  |> Pair.map_snd (function
     | Ok () -> Report_command { name = thm; result = `Ok; messages = [] }
     | Error msg ->
       Report_command { name = thm; result = `Error; messages = [msg] })
+
+let globref_to_string (r: Names.GlobRef.t): string =
+  match r with
+  | VarRef id -> Names.Id.to_string id
+  | ConstRef c -> Names.Constant.to_string c
+  | IndRef (mind, _) -> Names.MutInd.to_string mind
+  | ConstructRef ((mind, _), _) -> Names.MutInd.to_string mind
 
 let check_assumptions (a: SA.t) =
   let explain (ax, _, _) =
@@ -126,11 +133,12 @@ let check_assumptions (a: SA.t) =
       "Forbidden axiom", Names.Constant.to_string c
     | Printer.Positive mind ->
       "Relies on possibly unsound inductive", Names.MutInd.to_string mind
-    | Printer.TemplatePolymorphic mind ->
-      "Relies on possibly unsound template polymorphic inductive",
-      Names.MutInd.to_string mind
-    | Printer.Guarded c ->
-      "Relies on possibly unsound (co)fixpoint", Names.Constant.to_string c
+    | Printer.Guarded r ->
+      "Relies on possibly unsound (co)fixpoint", globref_to_string r
+    | Printer.TypeInType r ->
+      "Relies on Type in Type", globref_to_string r
+    | Printer.UIP mind ->
+      "Relies on UIP", Names.MutInd.to_string mind
   in
   let errors =
     (if a.SA.type_in_type then ["Relies on type-in-type"] else []) @
@@ -150,7 +158,7 @@ let check_thm name stmt =
       lemma_name stmt name
   in
   add_then_exec vernac
-  |> Pair.map2 (function
+  |> Pair.map_snd (function
     | Error msg -> Report_command { name; result = `Error; messages = [msg] }
     | Ok () ->
       match check_assumptions (get_assumptions lemma_name) with
@@ -320,7 +328,7 @@ let output_of_result
                 List.map (fun what -> { where = name; what }) messages)
       ) checks_res
       |> List.split
-      |> Pair.map2 List.flatten
+      |> Pair.map_snd List.flatten
     in
     { submission_is_valid = true; checks; messages }
 
@@ -353,10 +361,21 @@ let driver
 
     let rload_path =
       (coq_lp_conv ~implicit:true (in_dir, toplevel_namespace)) :: rload_path in
-    let iload_path =
-      Serapi_paths.coq_loadpath_default ~implicit:true ~coq_path
-      @ ml_path @ load_path @ rload_path in
-    let _doc, _sid = create_document ~in_file ~iload_path ~debug in
+    let dft_ml_path, vo_path =
+      Serapi.Serapi_paths.coq_loadpath_default ~implicit:true ~coq_path in
+    let ml_load_path = dft_ml_path @ ml_path in
+    let vo_load_path = vo_path @ load_path @ rload_path in
+
+    let stm_flags =
+      { Sertop.Sertop_init.enable_async = None
+      ; deep_edits = false
+      ; async_workers = 1
+      ; error_recovery = false
+      } in
+    let _doc, _sid =
+      create_document ~in_file ~stm_flags ~quick:false ~ml_load_path ~vo_load_path ~debug
+        ~allow_sprop:true ~indices_matter:false
+    in
 
     (* main loop *)
     input_doc ~in_file ~requires
@@ -375,7 +394,7 @@ let main () =
   in
 
   let main_cmd =
-    let open Sertop_arg in
+    let open Sertop.Sertop_arg in
     Term.(const driver
           $ timeout $ debug $ prelude
           $ ml_include_path $ load_path $ rload_path $ input_dir $ omit_loc
@@ -388,7 +407,7 @@ let main () =
     | `Version | `Help | `Ok () -> exit 0
     | `Error _ -> exit 1
   with exn ->
-    let (e, info) = CErrors.push exn in
+    let (e, info) = Exninfo.capture exn in
     fatal_exn e info
 
 let () = main ()
