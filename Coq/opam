@@ -7,10 +7,20 @@ authors: [
   "Armaël Guéneau <>"
 ]
 depends: [
+# These are the dependencies of the Coq grader itself
   "ocaml" {= "4.08.1" }
   "dune"
   "coq" {= "8.13.2"}
   "coq-serapi" {= "8.13.0+0.13.0"}
   "containers"
   "lwt"
+
+# These are extra coq packages that we install as part of the grader environment.
+# They will be available from user-submitted Coq scripts submitted to the grader.
+  "coq-hammer-tactics"
+  "coq-mathcomp-algebra"
+  "coq-mathcomp-finmap"
+  "coq-mathcomp-ssreflect"
+  "coq-stdpp"
+  "coq-tlc" {= "20210316"}
 ]
