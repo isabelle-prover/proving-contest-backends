@@ -7,7 +7,7 @@ authors: [
   "Armaël Guéneau <>"
 ]
 depends: [
-  "ocaml" {= "4.07.1" }
+  "ocaml" {= "4.08.1" }
   "dune"
   "coq" {= "8.13.2"}
   "coq-serapi" {= "8.13.0+0.13.0"}
