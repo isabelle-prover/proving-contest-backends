@@ -189,7 +189,10 @@ if __name__ == "__main__":
         (cmd, msgdict) = twoway(password, s)
 
         logger.info("Result: %s" % cmd)
-        logger.info("Version: %s" % msgdict["isabelle_version"])
+        if "isabelle_name" in msgdict.keys():
+            logger.info("Version: %s" % msgdict["isabelle_name"])
+        elif "isabelle_version" in msgdict.keys():
+            logger.info("Version: %s" % msgdict["isabelle_version"])
 
         logger.info(
             "============== Starting session '%s' =================" % session)
